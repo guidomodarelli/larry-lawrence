@@ -133,6 +133,10 @@ npx create-next-app@latest . --ts --eslint --tailwind --src-dir --import-alias "
 ### UI baseline
 
 - Use `shadcn/ui` following the official installation flow.
+- Prefer `shadcn/ui` components whenever a user request can be satisfied with an existing component or variant from the library.
+- When touching existing UI, replace custom components with the closest `shadcn/ui` component or composition if the current behavior can be preserved.
+- When adding new UI or features that need interface building blocks, use `shadcn/ui` components by default.
+- If no existing `shadcn/ui` component or variant can satisfy the requested UX without forcing a poor implementation, stop and ask the user how they want to proceed before building a custom alternative.
 - Initialize it with the official CLI:
 
 ```bash
