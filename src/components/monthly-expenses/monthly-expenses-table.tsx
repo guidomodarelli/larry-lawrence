@@ -106,6 +106,30 @@ function getSortableHeader(label: string) {
   };
 }
 
+function formatCurrencyAmount(
+  currency: MonthlyExpenseCurrency,
+  value: string,
+): string {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return value;
+  }
+
+  const [, decimalPart = ""] = value.split(".");
+  const normalizedDecimalPart = decimalPart.slice(0, 2);
+  const minimumFractionDigits =
+    normalizedDecimalPart.length === 0 || /^0+$/.test(normalizedDecimalPart)
+      ? 0
+      : normalizedDecimalPart.length;
+  const prefix = currency === "USD" ? "US$" : "$";
+
+  return `${prefix} ${new Intl.NumberFormat("es-AR", {
+    maximumFractionDigits: Math.max(minimumFractionDigits, 0),
+    minimumFractionDigits,
+  }).format(numericValue)}`;
+}
+
 export function MonthlyExpensesTable({
   actionDisabled,
   changedFields,
@@ -156,6 +180,8 @@ export function MonthlyExpensesTable({
       },
       {
         accessorKey: "subtotal",
+        cell: ({ row }) =>
+          formatCurrencyAmount(row.original.currency, row.original.subtotal),
         header: getSortableHeader("Subtotal"),
       },
       {
@@ -164,6 +190,8 @@ export function MonthlyExpensesTable({
       },
       {
         accessorKey: "total",
+        cell: ({ row }) =>
+          formatCurrencyAmount(row.original.currency, row.original.total),
         header: getSortableHeader("Total"),
       },
       {
