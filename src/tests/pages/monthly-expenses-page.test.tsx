@@ -2,6 +2,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useSession } from "next-auth/react";
 
+import {
+  getSafeLendersErrorMessage,
+  getSafeLoansReportErrorMessage,
+  getSafeMonthlyExpensesErrorMessage,
+} from "@/modules/monthly-expenses/application/queries/get-monthly-expenses-page-feedback";
 import type { StorageBootstrapResult } from "@/modules/storage/application/results/storage-bootstrap";
 import MonthlyExpensesPage, {
   getReportProviderFilterOptions,
@@ -742,5 +747,157 @@ describe("MonthlyExpensesPage", () => {
         label: "Prestador manual",
       },
     ]);
+  });
+
+  it("maps technical report errors to a user-friendly message", () => {
+    expect(
+      getSafeLoansReportErrorMessage("repository.listAll is not a function"),
+    ).toBe(
+      "No pudimos actualizar el reporte de deudas en este momento. Igual podés seguir cargando gastos y volver a intentarlo más tarde.",
+    );
+  });
+
+  it("maps technical monthly expenses errors to a user-friendly message", () => {
+    expect(
+      getSafeMonthlyExpensesErrorMessage(
+        "Google authentication is required before saving monthly expenses to Drive.",
+      ),
+    ).toBe("Conectate con Google para guardar tus gastos mensuales en Drive.");
+  });
+
+  it("maps technical lenders errors to a user-friendly message", () => {
+    expect(
+      getSafeLendersErrorMessage(
+        "The current Google session is missing the Drive permissions required to manage lenders.",
+      ),
+    ).toBe(
+      "Tu sesión actual no tiene permisos suficientes para gestionar prestadores en Drive.",
+    );
+  });
+
+  it("shows a safe report error message without the empty-state copy", () => {
+    render(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [],
+          month: "2026-03",
+        }}
+        reportLoadError="repository.listAll is not a function"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "No pudimos actualizar el reporte de deudas en este momento. Igual podés seguir cargando gastos y volver a intentarlo más tarde.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("No hay deudas registradas para los filtros seleccionados."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a safe monthly expenses error message instead of a technical one", async () => {
+    const user = userEvent.setup();
+    const fetchMock = jest.fn().mockResolvedValue({
+      json: async () => ({
+        error:
+          "Google authentication is required before saving monthly expenses to Drive.",
+      }),
+      ok: false,
+    });
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+    global.fetch = fetchMock as typeof fetch;
+
+    render(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [
+            {
+              currency: "ARS",
+              description: "Expensas",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              subtotal: 55032.07,
+              total: 55032.07,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Guardar gastos" }));
+
+    expect(
+      await screen.findByText(
+        "Conectate con Google para guardar tus gastos mensuales en Drive.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Google authentication is required before saving monthly expenses to Drive.",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a safe lenders error message instead of a technical one", async () => {
+    const user = userEvent.setup();
+    const fetchMock = jest.fn().mockResolvedValue({
+      json: async () => ({
+        error:
+          "The current Google session is missing the Drive permissions required to manage lenders.",
+      }),
+      ok: false,
+    });
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+    global.fetch = fetchMock as typeof fetch;
+
+    render(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("Nombre"), "Papa");
+    await user.click(screen.getByRole("button", { name: "Agregar prestador" }));
+
+    expect(
+      await screen.findByText(
+        "Tu sesión actual no tiene permisos suficientes para gestionar prestadores en Drive.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "The current Google session is missing the Drive permissions required to manage lenders.",
+      ),
+    ).not.toBeInTheDocument();
   });
 });

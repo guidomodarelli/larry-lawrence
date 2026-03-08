@@ -184,7 +184,7 @@ export function MonthlyExpensesLoansReport({
                 </p>
               </article>
             ))
-          ) : (
+          ) : feedbackMessage ? null : (
             <p className={styles.feedback}>
               No hay deudas registradas para los filtros seleccionados.
             </p>

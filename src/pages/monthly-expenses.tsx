@@ -31,6 +31,11 @@ import {
 import type { SaveMonthlyExpensesCommand } from "@/modules/monthly-expenses/application/commands/save-monthly-expenses-command";
 import { getMonthlyExpenseLoanPreview } from "@/modules/monthly-expenses/application/queries/get-monthly-expense-loan-preview";
 import {
+  getSafeLendersErrorMessage,
+  getSafeLoansReportErrorMessage,
+  getSafeMonthlyExpensesErrorMessage,
+} from "@/modules/monthly-expenses/application/queries/get-monthly-expenses-page-feedback";
+import {
   createEmptyMonthlyExpensesLoansReportResult,
   type MonthlyExpensesLoansReportResult,
 } from "@/modules/monthly-expenses/application/results/monthly-expenses-loans-report-result";
@@ -229,7 +234,7 @@ function createLoansReportState(
 ): LoansReportState {
   return {
     entries: report.entries,
-    error,
+    error: error ? getSafeLoansReportErrorMessage(error) : null,
     lenderFilter: "all",
     summary: report.summary,
     typeFilter: "all",
@@ -525,10 +530,7 @@ export default function MonthlyExpensesPage({
     } catch (error) {
       updateReportState((currentState) => ({
         ...currentState,
-        error:
-          error instanceof Error
-            ? error.message
-            : "No pudimos actualizar el reporte de deudas.",
+        error: getSafeLoansReportErrorMessage(error),
       }));
     }
   };
@@ -734,10 +736,7 @@ export default function MonthlyExpensesPage({
     } catch (error) {
       updateLendersState((currentState) => ({
         ...currentState,
-        error:
-          error instanceof Error
-            ? error.message
-            : "No pudimos guardar el catálogo de prestadores.",
+        error: getSafeLendersErrorMessage(error),
         isSubmitting: false,
       }));
     }
@@ -790,10 +789,7 @@ export default function MonthlyExpensesPage({
     } catch (error) {
       updateLendersState((currentState) => ({
         ...currentState,
-        error:
-          error instanceof Error
-            ? error.message
-            : "No pudimos actualizar el catálogo de prestadores.",
+        error: getSafeLendersErrorMessage(error),
         isSubmitting: false,
       }));
     }
@@ -851,10 +847,7 @@ export default function MonthlyExpensesPage({
     } catch (error) {
       updateFormState((currentState) => ({
         ...currentState,
-        error:
-          error instanceof Error
-            ? error.message
-            : "No pudimos guardar los gastos mensuales en Google Drive.",
+        error: getSafeMonthlyExpensesErrorMessage(error),
         isSubmitting: false,
       }));
     }
