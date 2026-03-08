@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useSession } from "next-auth/react";
 
 import type { StorageBootstrapResult } from "@/modules/storage/application/results/storage-bootstrap";
@@ -9,6 +10,7 @@ jest.mock("next-auth/react", () => ({
 }));
 
 const mockedUseSession = jest.mocked(useSession);
+const originalFetch = global.fetch;
 
 const bootstrap: StorageBootstrapResult = {
   architecture: {
@@ -45,6 +47,11 @@ describe("HomePage", () => {
       status: "unauthenticated",
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
+    global.fetch = jest.fn();
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
   });
 
   it("renders the storage playground without the legacy hero card", () => {
@@ -72,5 +79,147 @@ describe("HomePage", () => {
         "Completá la configuración OAuth del servidor para habilitar el storage.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("submits application settings from the page container", async () => {
+    const user = userEvent.setup();
+    const fetchMock = jest.fn().mockResolvedValue({
+      json: async () => ({
+        data: {
+          id: "settings-file-id",
+          mimeType: "application/json",
+          name: "application-settings.json",
+        },
+      }),
+      ok: true,
+    });
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+    global.fetch = fetchMock as typeof fetch;
+
+    render(<HomePage bootstrap={bootstrap} />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Guardar configuración" }),
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/storage/application-settings",
+        expect.objectContaining({
+          body: JSON.stringify({
+            content: "{\n  \"theme\": \"dark\"\n}",
+            mimeType: "application/json",
+            name: "application-settings.json",
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        }),
+      );
+    });
+
+    expect(
+      screen.getByText("Configuración guardada en Drive con id settings-file-id."),
+    ).toBeInTheDocument();
+  });
+
+  it("submits a user file from the page container and renders the Drive link", async () => {
+    const user = userEvent.setup();
+    const fetchMock = jest.fn().mockResolvedValue({
+      json: async () => ({
+        data: {
+          id: "user-file-id",
+          mimeType: "text/csv",
+          name: "expenses.csv",
+          viewUrl: "https://drive.google.com/file/d/user-file-id/view",
+        },
+      }),
+      ok: true,
+    });
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+    global.fetch = fetchMock as typeof fetch;
+
+    render(<HomePage bootstrap={bootstrap} />);
+
+    await user.click(screen.getByRole("button", { name: "Guardar archivo" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/storage/user-files",
+        expect.objectContaining({
+          body: JSON.stringify({
+            content: "date,amount\n2026-03-08,32.5",
+            mimeType: "text/csv",
+            name: "expenses.csv",
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        }),
+      );
+    });
+
+    expect(
+      screen.getByText("Archivo guardado en Drive con id user-file-id."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Abrir archivo en Drive" }),
+    ).toHaveAttribute(
+      "href",
+      "https://drive.google.com/file/d/user-file-id/view",
+    );
+  });
+
+  it("shows inline validation from the page container when user file content is empty", async () => {
+    const user = userEvent.setup();
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+
+    render(<HomePage bootstrap={bootstrap} />);
+
+    await user.clear(screen.getByLabelText("Contenido del archivo"));
+
+    expect(
+      screen.getByText(
+        "Completá nombre, MIME type y contenido para guardar el archivo del usuario.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Guardar archivo" }),
+    ).toBeDisabled();
   });
 });

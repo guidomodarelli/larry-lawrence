@@ -91,7 +91,12 @@ src/
   - Route entrypoints and framework composition roots only.
   - Compose dependencies for SSR, API handlers, and page-level interactions.
   - They may import `application` and module-scoped `infrastructure` only to wire framework adapters to use cases.
+  - Keep client-side session lookup, async workflows, and complex form orchestration in the page or in a module-scoped container, not inside presentational components.
   - Never host domain rules.
+- `src/components/*`
+  - Presentational components by default.
+  - Receive state, derived messages, results, and callbacks through props when an interaction depends on auth session state, HTTP requests, or multi-step UI workflows.
+  - Do not call module infrastructure adapters directly from presentational components.
 - `domain`
   - Pure business rules, entities, value objects, and ports.
   - No framework, HTTP, Google SDK, or persistence details.
@@ -183,6 +188,9 @@ External API/SDK -> infrastructure DTO -> infrastructure mapper -> domain entity
 
 - Client-side fetching is allowed only when SSR is not a fit, such as user-triggered refreshes, incremental interactions, or post-render mutations.
 - If client-side fetching is necessary, keep it behind use cases and adapters instead of calling third-party SDKs from components.
+- When a page needs client-side fetching plus auth/session state, prefer a container/presenter split:
+  - page or container owns session, fetch, mutation state, and validation flow
+  - presentational component renders props and emits callbacks only
 
 ## 5. Google OAuth and Drive Integration
 

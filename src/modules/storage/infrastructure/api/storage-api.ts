@@ -74,9 +74,5 @@ export async function saveUserFileViaApi(
   payload: StorageSaveRequest,
   fetchImplementation: typeof fetch = fetch,
 ): Promise<StoredStorageResource> {
-  return postStorageRequest(
-    "/api/storage/user-files",
-    payload,
-    fetchImplementation,
-  );
+  return postStorageRequest("/api/storage/user-files", payload, fetchImplementation);
 }

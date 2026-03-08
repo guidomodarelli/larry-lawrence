@@ -1,220 +1,77 @@
-import { useState } from "react";
-import { useSession } from "next-auth/react";
-
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  type StorageSaveRequest,
-  type StoredStorageResource,
-  saveApplicationSettingsViaApi,
-  saveUserFileViaApi,
-} from "@/lib/storage/storage-api";
-import { cn } from "@/lib/utils";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  cn,
+} from "@/lib/utils";
 
 import styles from "./storage-playground.module.scss";
 
-interface StoragePlaygroundProps {
-  isOAuthConfigured: boolean;
+export interface StoragePlaygroundFormValues {
+  content: string;
+  mimeType: string;
+  name: string;
 }
 
-interface StorageFormState {
+export interface StoragePlaygroundStoredResource {
+  id: string;
+  mimeType: string;
+  name: string;
+  viewUrl?: string | null;
+}
+
+export interface StoragePlaygroundFormState {
   error: string | null;
   isSubmitting: boolean;
-  result: StoredStorageResource | null;
+  result: StoragePlaygroundStoredResource | null;
   successMessage: string | null;
-  values: StorageSaveRequest;
+  values: StoragePlaygroundFormValues;
 }
 
-const DEFAULT_APPLICATION_SETTINGS_VALUES: StorageSaveRequest = {
-  content: '{\n  "theme": "dark"\n}',
-  mimeType: "application/json",
-  name: "application-settings.json",
-};
+type StorageFieldName = keyof StoragePlaygroundFormValues;
+type StorageFormSubmitHandler = (event: React.FormEvent<HTMLFormElement>) => void;
 
-const DEFAULT_USER_FILE_VALUES: StorageSaveRequest = {
-  content: "date,amount\n2026-03-08,32.5",
-  mimeType: "text/csv",
-  name: "expenses.csv",
-};
-
-function createStorageFormState(values: StorageSaveRequest): StorageFormState {
-  return {
-    error: null,
-    isSubmitting: false,
-    result: null,
-    successMessage: null,
-    values,
-  };
-}
-
-function normalizeStorageValues(values: StorageSaveRequest): StorageSaveRequest {
-  return {
-    content: values.content.trim(),
-    mimeType: values.mimeType.trim(),
-    name: values.name.trim(),
-  };
-}
-
-function getFieldValidationMessage(
-  values: StorageSaveRequest,
-  resourceLabel: string,
-): string | null {
-  const normalizedValues = normalizeStorageValues(values);
-
-  if (
-    !normalizedValues.name ||
-    !normalizedValues.mimeType ||
-    !normalizedValues.content
-  ) {
-    return `Completá nombre, MIME type y contenido para guardar ${resourceLabel}.`;
-  }
-
-  return null;
+interface StoragePlaygroundProps {
+  applicationSettingsActionDisabled: boolean;
+  applicationSettingsForm: StoragePlaygroundFormState;
+  applicationSettingsHint: string;
+  isAuthenticated: boolean;
+  onApplicationSettingsFieldChange: (
+    fieldName: StorageFieldName,
+    value: string,
+  ) => void;
+  onApplicationSettingsSubmit: StorageFormSubmitHandler;
+  onUserFileFieldChange: (fieldName: StorageFieldName, value: string) => void;
+  onUserFileSubmit: StorageFormSubmitHandler;
+  sessionMessage: string;
+  sessionUserEmail: string | null;
+  sessionUserName: string | null;
+  userFilesActionDisabled: boolean;
+  userFilesForm: StoragePlaygroundFormState;
+  userFilesHint: string;
 }
 
 export function StoragePlayground({
-  isOAuthConfigured,
+  applicationSettingsActionDisabled,
+  applicationSettingsForm,
+  applicationSettingsHint,
+  isAuthenticated,
+  onApplicationSettingsFieldChange,
+  onApplicationSettingsSubmit,
+  onUserFileFieldChange,
+  onUserFileSubmit,
+  sessionMessage,
+  sessionUserEmail,
+  sessionUserName,
+  userFilesActionDisabled,
+  userFilesForm,
+  userFilesHint,
 }: StoragePlaygroundProps) {
-  const { data: session, status } = useSession();
-  const [applicationSettingsForm, setApplicationSettingsForm] =
-    useState<StorageFormState>(
-      createStorageFormState(DEFAULT_APPLICATION_SETTINGS_VALUES),
-    );
-  const [userFilesForm, setUserFilesForm] = useState<StorageFormState>(
-    createStorageFormState(DEFAULT_USER_FILE_VALUES),
-  );
-
-  const isAuthenticated = status === "authenticated";
-  const isSessionLoading = status === "loading";
-  const sessionUserName = session?.user?.name?.trim() || "Nombre no disponible";
-  const sessionUserEmail = session?.user?.email?.trim() || "Email no disponible";
-  const sessionMessage = !isOAuthConfigured
-    ? "Completá la configuración OAuth del servidor para habilitar el storage."
-    : isSessionLoading
-      ? "Estamos verificando tu sesión de Google."
-      : isAuthenticated
-        ? "Sesión Google activa. Ya podés guardar en Drive."
-        : "Conectate con Google para habilitar el guardado en Drive.";
-
-  const updateApplicationSettingsField = (
-    fieldName: keyof StorageSaveRequest,
-    value: string,
-  ) => {
-    setApplicationSettingsForm((currentState) => ({
-      ...currentState,
-      error: null,
-      result: null,
-      successMessage: null,
-      values: {
-        ...currentState.values,
-        [fieldName]: value,
-      },
-    }));
-  };
-
-  const updateUserFilesField = (
-    fieldName: keyof StorageSaveRequest,
-    value: string,
-  ) => {
-    setUserFilesForm((currentState) => ({
-      ...currentState,
-      error: null,
-      result: null,
-      successMessage: null,
-      values: {
-        ...currentState.values,
-        [fieldName]: value,
-      },
-    }));
-  };
-
-  const applicationSettingsValidationMessage = getFieldValidationMessage(
-    applicationSettingsForm.values,
-    "la configuración",
-  );
-  const userFilesValidationMessage = getFieldValidationMessage(
-    userFilesForm.values,
-    "el archivo del usuario",
-  );
-
-  const submitApplicationSettings = async (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-
-    if (applicationSettingsValidationMessage || !isOAuthConfigured || !isAuthenticated) {
-      return;
-    }
-
-    setApplicationSettingsForm((currentState) => ({
-      ...currentState,
-      error: null,
-      isSubmitting: true,
-      result: null,
-      successMessage: null,
-    }));
-
-    try {
-      const result = await saveApplicationSettingsViaApi(
-        normalizeStorageValues(applicationSettingsForm.values),
-      );
-
-      setApplicationSettingsForm((currentState) => ({
-        ...currentState,
-        isSubmitting: false,
-        result,
-        successMessage: `Configuración guardada en Drive con id ${result.id}.`,
-      }));
-    } catch (error) {
-      setApplicationSettingsForm((currentState) => ({
-        ...currentState,
-        error:
-          error instanceof Error
-            ? error.message
-            : "No pudimos guardar la configuración en Google Drive.",
-        isSubmitting: false,
-      }));
-    }
-  };
-
-  const submitUserFile = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (userFilesValidationMessage || !isOAuthConfigured || !isAuthenticated) {
-      return;
-    }
-
-    setUserFilesForm((currentState) => ({
-      ...currentState,
-      error: null,
-      isSubmitting: true,
-      result: null,
-      successMessage: null,
-    }));
-
-    try {
-      const result = await saveUserFileViaApi(
-        normalizeStorageValues(userFilesForm.values),
-      );
-
-      setUserFilesForm((currentState) => ({
-        ...currentState,
-        isSubmitting: false,
-        result,
-        successMessage: `Archivo guardado en Drive con id ${result.id}.`,
-      }));
-    } catch (error) {
-      setUserFilesForm((currentState) => ({
-        ...currentState,
-        error:
-          error instanceof Error
-            ? error.message
-            : "No pudimos guardar el archivo del usuario en Google Drive.",
-        isSubmitting: false,
-      }));
-    }
-  };
-
   return (
     <section
       aria-labelledby="storage-playground-title"
@@ -242,15 +99,20 @@ export function StoragePlayground({
           >
             {sessionMessage}
           </p>
-          {isAuthenticated ? (
+          {isAuthenticated && sessionUserName && sessionUserEmail ? (
             <div className={styles.sessionIdentity}>
-              <p className={styles.sessionIdentityLine}>Cuenta activa: {sessionUserName}</p>
+              <p className={styles.sessionIdentityLine}>
+                Cuenta activa: {sessionUserName}
+              </p>
               <p className={styles.sessionIdentityLine}>Email: {sessionUserEmail}</p>
             </div>
           ) : null}
 
           <div className={styles.formsGrid}>
-            <form className={styles.formCard} onSubmit={submitApplicationSettings}>
+            <form
+              className={styles.formCard}
+              onSubmit={onApplicationSettingsSubmit}
+            >
               <div className={styles.formHeader}>
                 <h3 className={styles.formTitle}>Guardar configuración</h3>
                 <p className={styles.formDescription}>
@@ -271,7 +133,7 @@ export function StoragePlayground({
                     className={styles.input}
                     id="application-settings-name"
                     onChange={(event) =>
-                      updateApplicationSettingsField("name", event.target.value)
+                      onApplicationSettingsFieldChange("name", event.target.value)
                     }
                     type="text"
                     value={applicationSettingsForm.values.name}
@@ -289,7 +151,7 @@ export function StoragePlayground({
                     className={styles.input}
                     id="application-settings-mime-type"
                     onChange={(event) =>
-                      updateApplicationSettingsField(
+                      onApplicationSettingsFieldChange(
                         "mimeType",
                         event.target.value,
                       )
@@ -310,7 +172,7 @@ export function StoragePlayground({
                     className={styles.textarea}
                     id="application-settings-content"
                     onChange={(event) =>
-                      updateApplicationSettingsField(
+                      onApplicationSettingsFieldChange(
                         "content",
                         event.target.value,
                       )
@@ -331,19 +193,12 @@ export function StoragePlayground({
               >
                 {applicationSettingsForm.error ??
                   applicationSettingsForm.successMessage ??
-                  applicationSettingsValidationMessage ??
-                  "Usá este guardado para probar la persistencia de la configuración."}
+                  applicationSettingsHint}
               </p>
 
               <div className={styles.actions}>
                 <Button
-                  disabled={
-                    !isOAuthConfigured ||
-                    !isAuthenticated ||
-                    isSessionLoading ||
-                    applicationSettingsForm.isSubmitting ||
-                    Boolean(applicationSettingsValidationMessage)
-                  }
+                  disabled={applicationSettingsActionDisabled}
                   type="submit"
                 >
                   {applicationSettingsForm.isSubmitting
@@ -367,7 +222,7 @@ export function StoragePlayground({
               ) : null}
             </form>
 
-            <form className={styles.formCard} onSubmit={submitUserFile}>
+            <form className={styles.formCard} onSubmit={onUserFileSubmit}>
               <div className={styles.formHeader}>
                 <h3 className={styles.formTitle}>Guardar archivo del usuario</h3>
                 <p className={styles.formDescription}>
@@ -385,7 +240,7 @@ export function StoragePlayground({
                     className={styles.input}
                     id="user-file-name"
                     onChange={(event) =>
-                      updateUserFilesField("name", event.target.value)
+                      onUserFileFieldChange("name", event.target.value)
                     }
                     type="text"
                     value={userFilesForm.values.name}
@@ -400,7 +255,7 @@ export function StoragePlayground({
                     className={styles.input}
                     id="user-file-mime-type"
                     onChange={(event) =>
-                      updateUserFilesField("mimeType", event.target.value)
+                      onUserFileFieldChange("mimeType", event.target.value)
                     }
                     type="text"
                     value={userFilesForm.values.mimeType}
@@ -415,7 +270,7 @@ export function StoragePlayground({
                     className={styles.textarea}
                     id="user-file-content"
                     onChange={(event) =>
-                      updateUserFilesField("content", event.target.value)
+                      onUserFileFieldChange("content", event.target.value)
                     }
                     value={userFilesForm.values.content}
                   />
@@ -433,19 +288,12 @@ export function StoragePlayground({
               >
                 {userFilesForm.error ??
                   userFilesForm.successMessage ??
-                  userFilesValidationMessage ??
-                  "Usá este guardado para probar archivos visibles del usuario."}
+                  userFilesHint}
               </p>
 
               <div className={styles.actions}>
                 <Button
-                  disabled={
-                    !isOAuthConfigured ||
-                    !isAuthenticated ||
-                    isSessionLoading ||
-                    userFilesForm.isSubmitting ||
-                    Boolean(userFilesValidationMessage)
-                  }
+                  disabled={userFilesActionDisabled}
                   type="submit"
                 >
                   {userFilesForm.isSubmitting

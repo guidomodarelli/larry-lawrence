@@ -1,44 +1,71 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { useSession } from "next-auth/react";
+import { render, screen } from "@testing-library/react";
 
-import { StoragePlayground } from "./storage-playground";
+import {
+  StoragePlayground,
+  type StoragePlaygroundFormState,
+  type StoragePlaygroundFormValues,
+} from "./storage-playground";
 
-jest.mock("next-auth/react", () => ({
-  useSession: jest.fn(),
-}));
+const DEFAULT_APPLICATION_SETTINGS_VALUES: StoragePlaygroundFormValues = {
+  content: '{\n  "theme": "dark"\n}',
+  mimeType: "application/json",
+  name: "application-settings.json",
+};
 
-const mockedUseSession = jest.mocked(useSession);
-const originalFetch = global.fetch;
+const DEFAULT_USER_FILE_VALUES: StoragePlaygroundFormValues = {
+  content: "date,amount\n2026-03-08,32.5",
+  mimeType: "text/csv",
+  name: "expenses.csv",
+};
+
+function createStorageFormState(
+  values: StoragePlaygroundFormValues,
+): StoragePlaygroundFormState {
+  return {
+    error: null,
+    isSubmitting: false,
+    result: null,
+    successMessage: null,
+    values,
+  };
+}
+
+function createDefaultProps() {
+  return {
+    applicationSettingsActionDisabled: false,
+    applicationSettingsForm: createStorageFormState(
+      DEFAULT_APPLICATION_SETTINGS_VALUES,
+    ),
+    applicationSettingsHint:
+      "Usá este guardado para probar la persistencia de la configuración.",
+    isAuthenticated: true,
+    isSessionLoading: false,
+    onApplicationSettingsFieldChange: jest.fn(),
+    onApplicationSettingsSubmit: jest.fn(),
+    onUserFileFieldChange: jest.fn(),
+    onUserFileSubmit: jest.fn(),
+    sessionMessage: "Sesión Google activa. Ya podés guardar en Drive.",
+    sessionUserEmail: "gus@example.com",
+    sessionUserName: "Gus",
+    userFilesActionDisabled: false,
+    userFilesForm: createStorageFormState(DEFAULT_USER_FILE_VALUES),
+    userFilesHint: "Usá este guardado para probar archivos visibles del usuario.",
+  };
+}
 
 describe("StoragePlayground", () => {
-  beforeEach(() => {
-    mockedUseSession.mockReturnValue({
-      data: {
-        expires: "2099-01-01T00:00:00.000Z",
-        user: {
-          email: "gus@example.com",
-          name: "Gus",
-        },
-      },
-      status: "authenticated",
-      update: jest.fn(),
-    } as ReturnType<typeof useSession>);
-    global.fetch = jest.fn();
-  });
-
-  afterAll(() => {
-    global.fetch = originalFetch;
-  });
-
   it("disables storage actions when there is no Google session", () => {
-    mockedUseSession.mockReturnValue({
-      data: null,
-      status: "unauthenticated",
-      update: jest.fn(),
-    } as ReturnType<typeof useSession>);
-
-    render(<StoragePlayground isOAuthConfigured />);
+    render(
+      <StoragePlayground
+        {...createDefaultProps()}
+        applicationSettingsActionDisabled
+        isAuthenticated={false}
+        sessionMessage="Conectate con Google para habilitar el guardado en Drive."
+        sessionUserEmail={null}
+        sessionUserName={null}
+        userFilesActionDisabled
+      />,
+    );
 
     expect(
       screen.getByText("Conectate con Google para habilitar el guardado en Drive."),
@@ -52,7 +79,7 @@ describe("StoragePlayground", () => {
   });
 
   it("shows the active account personal details when session is authenticated", () => {
-    render(<StoragePlayground isOAuthConfigured />);
+    render(<StoragePlayground {...createDefaultProps()} />);
 
     expect(
       screen.getByText("Sesión Google activa. Ya podés guardar en Drive."),
@@ -61,84 +88,35 @@ describe("StoragePlayground", () => {
     expect(screen.getByText("Email: gus@example.com")).toBeInTheDocument();
   });
 
-  it("saves application settings and shows the created file id", async () => {
-    const user = userEvent.setup();
-    const fetchMock = jest.fn().mockResolvedValue({
-      json: async () => ({
-        data: {
-          id: "settings-file-id",
-          mimeType: "application/json",
-          name: "application-settings.json",
-        },
-      }),
-      ok: true,
-    });
-    global.fetch = fetchMock as typeof fetch;
-
-    render(<StoragePlayground isOAuthConfigured />);
-
-    await user.click(
-      screen.getByRole("button", { name: "Guardar configuración" }),
-    );
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/storage/application-settings",
-        expect.objectContaining({
-          body: JSON.stringify({
-            content: "{\n  \"theme\": \"dark\"\n}",
+  it("renders storage results passed by the container", () => {
+    render(
+      <StoragePlayground
+        {...createDefaultProps()}
+        applicationSettingsForm={{
+          ...createStorageFormState(DEFAULT_APPLICATION_SETTINGS_VALUES),
+          result: {
+            id: "settings-file-id",
             mimeType: "application/json",
             name: "application-settings.json",
-          }),
-          headers: {
-            "Content-Type": "application/json",
           },
-          method: "POST",
-        }),
-      );
-    });
+          successMessage: "Configuración guardada en Drive con id settings-file-id.",
+        }}
+        userFilesForm={{
+          ...createStorageFormState(DEFAULT_USER_FILE_VALUES),
+          result: {
+            id: "user-file-id",
+            mimeType: "text/csv",
+            name: "expenses.csv",
+            viewUrl: "https://drive.google.com/file/d/user-file-id/view",
+          },
+          successMessage: "Archivo guardado en Drive con id user-file-id.",
+        }}
+      />,
+    );
 
     expect(
       screen.getByText("Configuración guardada en Drive con id settings-file-id."),
     ).toBeInTheDocument();
-  });
-
-  it("saves a user file and renders the Drive link", async () => {
-    const user = userEvent.setup();
-    const fetchMock = jest.fn().mockResolvedValue({
-      json: async () => ({
-        data: {
-          id: "user-file-id",
-          mimeType: "text/csv",
-          name: "expenses.csv",
-          viewUrl: "https://drive.google.com/file/d/user-file-id/view",
-        },
-      }),
-      ok: true,
-    });
-    global.fetch = fetchMock as typeof fetch;
-
-    render(<StoragePlayground isOAuthConfigured />);
-
-    await user.click(screen.getByRole("button", { name: "Guardar archivo" }));
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/storage/user-files",
-        expect.objectContaining({
-          body: JSON.stringify({
-            content: "date,amount\n2026-03-08,32.5",
-            mimeType: "text/csv",
-            name: "expenses.csv",
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        }),
-      );
-    });
-
     expect(
       screen.getByText("Archivo guardado en Drive con id user-file-id."),
     ).toBeInTheDocument();
@@ -150,12 +128,14 @@ describe("StoragePlayground", () => {
     );
   });
 
-  it("shows inline validation when the user file content is empty", async () => {
-    const user = userEvent.setup();
-
-    render(<StoragePlayground isOAuthConfigured />);
-
-    await user.clear(screen.getByLabelText("Contenido del archivo"));
+  it("shows inline validation coming from the container", () => {
+    render(
+      <StoragePlayground
+        {...createDefaultProps()}
+        userFilesActionDisabled
+        userFilesHint="Completá nombre, MIME type y contenido para guardar el archivo del usuario."
+      />,
+    );
 
     expect(
       screen.getByText(
