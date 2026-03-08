@@ -2,6 +2,12 @@ import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
 import { getGoogleOAuthServerConfig } from "./google-oauth-config";
+import {
+  buildGoogleSessionToken,
+  hasExpiredGoogleAccessToken,
+  refreshGoogleSessionToken,
+  type GoogleSessionToken,
+} from "./google-oauth-token";
 
 const googleOAuthServerConfig = getGoogleOAuthServerConfig();
 
@@ -21,6 +27,35 @@ const googleProvider = googleOAuthServerConfig
   : null;
 
 export const authOptions: NextAuthOptions = {
+  callbacks: {
+    async jwt({ account, token }) {
+      if (account?.provider === "google") {
+        return buildGoogleSessionToken({ account, token });
+      }
+
+      const googleSessionToken = token as GoogleSessionToken;
+
+      if (
+        !googleSessionToken.googleAccessToken ||
+        !googleSessionToken.googleAccessTokenExpiresAt
+      ) {
+        return token;
+      }
+
+      if (!hasExpiredGoogleAccessToken(googleSessionToken)) {
+        return token;
+      }
+
+      try {
+        return await refreshGoogleSessionToken(googleSessionToken);
+      } catch {
+        return {
+          ...googleSessionToken,
+          googleTokenError: "RefreshGoogleAccessTokenError",
+        };
+      }
+    },
+  },
   pages: {
     error: "/auth/error",
     signIn: "/auth/signin",
