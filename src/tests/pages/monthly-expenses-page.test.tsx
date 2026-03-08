@@ -172,6 +172,32 @@ describe("MonthlyExpensesPage", () => {
     expect(screen.queryByText("Email: gus@example.com")).not.toBeInTheDocument();
   });
 
+  it("renders an active Google connection badge when the user is authenticated", () => {
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+
+    render(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Google conectado - Activo")).toBeInTheDocument();
+  });
+
   it("adds and removes manual expense rows", async () => {
     const user = userEvent.setup();
 

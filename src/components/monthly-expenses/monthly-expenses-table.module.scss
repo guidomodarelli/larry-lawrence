@@ -7,6 +7,13 @@
   gap: 1rem;
 }
 
+.headerTopRow {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
 .header {
   display: grid;
   gap: 0.5rem;
@@ -24,23 +31,23 @@
   color: var(--muted-foreground);
 }
 
-.sessionStatus {
-  margin: 0;
-  padding: 0.875rem 1rem;
-  border-radius: 0.75rem;
-  font-weight: 500;
-  background: color-mix(in srgb, var(--muted) 65%, transparent);
-  color: var(--foreground);
+.sessionStatusBadge {
+  margin-left: auto;
+  align-self: flex-start;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-.sessionReady {
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
+.sessionReadyBadge {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
   color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
-.sessionPending {
+.sessionPendingBadge {
   background: color-mix(in srgb, var(--destructive) 12%, transparent);
   color: var(--destructive);
+  border-color: color-mix(in srgb, var(--destructive) 28%, transparent);
 }
 
 .toolbar {
@@ -232,6 +239,14 @@
 }
 
 @media (max-width: 720px) {
+  .headerTopRow {
+    flex-direction: column;
+  }
+
+  .sessionStatusBadge {
+    margin-left: 0;
+  }
+
   .pageActions,
   .actions,
   .primaryActions,

@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,24 +111,30 @@ export function MonthlyExpensesTable({
       className={styles.section}
     >
       <div className={styles.content}>
-        <div className={styles.header}>
-          <h1 className={styles.pageTitle} id="monthly-expenses-title">
-            Registro mensual de gastos
-          </h1>
-          <p className={styles.pageDescription}>
-            Organizá servicios, alquileres, expensas y cualquier gasto
-            recurrente en una tabla mensual con guardado en Google Drive.
-          </p>
-        </div>
-          <p
+        <div className={styles.headerTopRow}>
+          <div className={styles.header}>
+            <h1 className={styles.pageTitle} id="monthly-expenses-title">
+              Registro mensual de gastos
+            </h1>
+            <p className={styles.pageDescription}>
+              Organizá servicios, alquileres, expensas y cualquier gasto
+              recurrente en una tabla mensual con guardado en Google Drive.
+            </p>
+          </div>
+          <Badge
             className={cn(
-              styles.sessionStatus,
-              isAuthenticated ? styles.sessionReady : styles.sessionPending,
+              styles.sessionStatusBadge,
+              isAuthenticated ? styles.sessionReadyBadge : styles.sessionPendingBadge,
             )}
             role="status"
+            title={sessionMessage}
+            variant={isAuthenticated ? "default" : "outline"}
           >
-            {sessionMessage}
-          </p>
+            {isAuthenticated
+              ? "Google conectado - Activo"
+              : "Google desconectado - Inactivo"}
+          </Badge>
+        </div>
 
           {loadError ? (
             <p className={cn(styles.feedback, styles.errorText)} role="alert">
