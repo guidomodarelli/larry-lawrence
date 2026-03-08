@@ -218,7 +218,8 @@ describe("MonthlyExpensesPage", () => {
     await user.type(screen.getByLabelText("Subtotal"), "15000");
     await user.type(screen.getByLabelText("Cantidad de veces por mes"), "1");
 
-    expect(screen.getByLabelText("Total")).toHaveValue("15000.00");
+    expect(screen.getByLabelText("Subtotal")).toHaveValue("15.000");
+    expect(screen.getByLabelText("Total")).toHaveValue("15.000");
     expect(fetchMock).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Guardar" }));
@@ -387,7 +388,7 @@ describe("MonthlyExpensesPage", () => {
       screen.getByRole("heading", { name: "Editar gasto" }),
     ).toBeInTheDocument();
     expect(screen.getByDisplayValue("Agua")).toBeInTheDocument();
-    expect(screen.getByLabelText("Subtotal")).toHaveValue(10774.53);
+    expect(screen.getByLabelText("Subtotal")).toHaveValue("10.774,53");
 
     await user.clear(screen.getByLabelText("Subtotal"));
     await user.type(screen.getByLabelText("Subtotal"), "12000");
@@ -396,8 +397,11 @@ describe("MonthlyExpensesPage", () => {
       "data-changed",
       "true",
     );
-    expect(screen.getByText("Cambio pendiente")).toBeInTheDocument();
-    expect(screen.getByLabelText("Total")).toHaveValue("12000.00");
+    expect(
+      screen.getByText("Los labels amarillos subrayados indican cambios sin guardar."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Subtotal")).toHaveValue("12.000");
+    expect(screen.getByLabelText("Total")).toHaveValue("12.000");
 
     await user.click(screen.getByRole("button", { name: "Guardar" }));
 
@@ -419,6 +423,85 @@ describe("MonthlyExpensesPage", () => {
     expect(
       screen.queryByRole("heading", { name: "Editar gasto" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps thousands editing semantics when deleting digits from a formatted subtotal", async () => {
+    const user = userEvent.setup();
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+
+    render(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Agregar gasto" }));
+
+    const subtotalInput = screen.getByLabelText("Subtotal");
+
+    await user.type(subtotalInput, "1111");
+
+    expect(subtotalInput).toHaveValue("1.111");
+
+    await user.keyboard("{Backspace}");
+
+    expect(subtotalInput).toHaveValue("111");
+  });
+
+  it("formats subtotal values typed with decimal comma", async () => {
+    const user = userEvent.setup();
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+
+    render(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Agregar gasto" }));
+
+    const subtotalInput = screen.getByLabelText("Subtotal");
+
+    await user.type(subtotalInput, "1234");
+    expect(subtotalInput).toHaveValue("1.234");
+
+    await user.type(subtotalInput, ",");
+    expect(subtotalInput).toHaveValue("1.234,");
+
+    await user.type(subtotalInput, "50");
+
+    expect(subtotalInput).toHaveValue("1.234,50");
+    expect(screen.getByLabelText("Total")).toHaveValue("0");
   });
 
   it("blocks sheet close on outside click when there are unsaved changes and can save from the warning dialog", async () => {

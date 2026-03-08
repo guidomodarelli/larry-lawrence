@@ -12,6 +12,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupInput,
+  InputGroupPrefix,
+} from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -80,6 +85,66 @@ function getFieldLabel(label: string, isChanged: boolean) {
   );
 }
 
+function normalizeCurrencyInput(value: string): string {
+  const sanitizedValue = value.replace(/[^\d,.-]/g, "");
+
+  if (!sanitizedValue) {
+    return "";
+  }
+
+  const hasCommaDecimalSeparator = sanitizedValue.includes(",");
+
+  if (!hasCommaDecimalSeparator) {
+    return sanitizedValue.replace(/[^\d-]/g, "");
+  }
+
+  const decimalSeparatorIndex = sanitizedValue.lastIndexOf(",");
+  const integerPart = sanitizedValue.slice(0, decimalSeparatorIndex);
+  const decimalPart = sanitizedValue.slice(decimalSeparatorIndex + 1);
+  const normalizedIntegerPart = integerPart.replace(/[^\d-]/g, "");
+  const normalizedDecimalPart = decimalPart.replace(/[^\d]/g, "").slice(0, 2);
+
+  if (normalizedDecimalPart.length === 0) {
+    return `${normalizedIntegerPart}.`;
+  }
+
+  return `${normalizedIntegerPart}.${normalizedDecimalPart}`;
+}
+
+function formatCurrencyDisplay(value: string): string {
+  const normalizedValue = /^-?\d+\.(\d{1,2})?$/.test(value)
+    ? value
+    : normalizeCurrencyInput(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  const numericValue = Number(normalizedValue);
+
+  if (!Number.isFinite(numericValue)) {
+    return "";
+  }
+
+  if (normalizedValue.endsWith(".")) {
+    return `${new Intl.NumberFormat("es-AR", {
+      maximumFractionDigits: 0,
+    }).format(numericValue)},`;
+  }
+
+  const [, decimalPart = ""] = normalizedValue.split(".");
+  const normalizedDecimalPart = decimalPart.slice(0, 2);
+  const minimumFractionDigits =
+    normalizedDecimalPart.length === 0 || /^0+$/.test(normalizedDecimalPart)
+      ? 0
+      : normalizedDecimalPart.length;
+
+  return new Intl.NumberFormat("es-AR", {
+    maximumFractionDigits: Math.max(minimumFractionDigits, 0),
+    minimumFractionDigits,
+  }).format(numericValue);
+}
+
 export function ExpenseSheet({
   actionDisabled,
   changedFields,
@@ -110,6 +175,7 @@ export function ExpenseSheet({
   const loanHelpMessage =
     "Marcá el check si este gasto representa una deuda con una persona o entidad.";
   const hasPendingChanges = changedFields.size > 0;
+  const currencyPrefix = draft.currency === "USD" ? "US$" : "$";
 
   return (
     <>
@@ -221,20 +287,28 @@ export function ExpenseSheet({
                   {getFieldLabel("Subtotal", changedFields.has("subtotal"))}
                 </Label>
                 <div className={styles.fieldControlWrapper}>
-                  <Input
-                    aria-label="Subtotal"
+                  <InputGroup
                     className={cn(changedFields.has("subtotal") && styles.changedField)}
                     data-changed={changedFields.has("subtotal") ? "true" : "false"}
-                    id="expense-subtotal"
-                    inputMode="decimal"
-                    min="0"
-                    onChange={(event) =>
-                      onFieldChange("subtotal", event.target.value)
-                    }
-                    step="0.01"
-                    type="number"
-                    value={draft.subtotal}
-                  />
+                  >
+                    <InputGroupPrefix aria-hidden="true">
+                      {currencyPrefix}
+                    </InputGroupPrefix>
+                    <InputGroupInput
+                      aria-label="Subtotal"
+                      data-changed={changedFields.has("subtotal") ? "true" : "false"}
+                      id="expense-subtotal"
+                      inputMode="decimal"
+                      onChange={(event) =>
+                        onFieldChange(
+                          "subtotal",
+                          normalizeCurrencyInput(event.target.value),
+                        )
+                      }
+                      type="text"
+                      value={formatCurrencyDisplay(draft.subtotal)}
+                    />
+                  </InputGroup>
                 </div>
               </div>
 
@@ -269,13 +343,18 @@ export function ExpenseSheet({
 
               <div className={styles.fieldGroup}>
                 <Label htmlFor="expense-total">Total</Label>
-                <Input
-                  aria-label="Total"
-                  id="expense-total"
-                  readOnly
-                  type="text"
-                  value={draft.total}
-                />
+                <InputGroup>
+                  <InputGroupPrefix aria-hidden="true">
+                    {currencyPrefix}
+                  </InputGroupPrefix>
+                  <InputGroupInput
+                    aria-label="Total"
+                    id="expense-total"
+                    readOnly
+                    type="text"
+                    value={formatCurrencyDisplay(draft.total)}
+                  />
+                </InputGroup>
               </div>
             </div>
 
