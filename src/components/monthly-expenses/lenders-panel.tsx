@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 
+import { ConfirmDeleteButton } from "@/components/monthly-expenses/confirm-delete-button";
 import type { LenderOption } from "@/components/monthly-expenses/lender-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -142,14 +143,10 @@ export function LendersPanel({
                     {getLenderTypeLabel(lender.type)}
                   </p>
                 </div>
-                <Button
-                  onClick={() => onDelete(lender.id)}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  Eliminar
-                </Button>
+                <ConfirmDeleteButton
+                  message={`¿Querés eliminar a ${lender.name} del catálogo?`}
+                  onConfirm={() => onDelete(lender.id)}
+                />
               </div>
             ))
           ) : (

@@ -23,6 +23,9 @@ import {
 import { cn } from "@/lib/utils";
 
 import {
+  ConfirmDeleteButton,
+} from "./confirm-delete-button";
+import {
   LenderPicker,
   type LenderOption,
 } from "./lender-picker";
@@ -448,15 +451,11 @@ export function MonthlyExpensesTable({
                             </div>
                           </TableCell>
                           <TableCell className={styles.actionsCell}>
-                            <Button
-                              aria-label={`Eliminar gasto ${index + 1}`}
-                              onClick={() => onRemoveExpense(row.id)}
-                              size="sm"
-                              type="button"
-                              variant="ghost"
-                            >
-                              Eliminar
-                            </Button>
+                            <ConfirmDeleteButton
+                              message="¿Querés eliminar este gasto?"
+                              onConfirm={() => onRemoveExpense(row.id)}
+                              triggerAriaLabel={`Eliminar gasto ${index + 1}`}
+                            />
                           </TableCell>
                         </TableRow>
                       );

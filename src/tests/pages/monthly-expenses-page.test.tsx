@@ -261,7 +261,43 @@ describe("MonthlyExpensesPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Eliminar gasto 2" }));
 
+    expect(screen.getAllByLabelText("Descripción")).toHaveLength(2);
+    expect(
+      screen.getByText("¿Querés eliminar este gasto?"),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Confirmar" }),
+    );
+
     expect(screen.getAllByLabelText("Descripción")).toHaveLength(1);
+  });
+
+  it("closes the delete confirmation when clicking outside the popover", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Agregar gasto" }));
+    await user.click(screen.getByRole("button", { name: "Eliminar gasto 2" }));
+
+    expect(
+      screen.getByText("¿Querés eliminar este gasto?"),
+    ).toBeInTheDocument();
+
+    await user.click(document.body);
+
+    expect(
+      screen.queryByText("¿Querés eliminar este gasto?"),
+    ).not.toBeInTheDocument();
   });
 
   it("submits the current month document through the page container", async () => {
@@ -667,6 +703,84 @@ describe("MonthlyExpensesPage", () => {
     });
 
     expect(screen.getAllByText("Papa")[0]).toBeInTheDocument();
+  });
+
+  it("requires confirmation before deleting a lender from the catalog", async () => {
+    const user = userEvent.setup();
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce({
+        json: async () => ({
+          data: {
+            id: "lenders-file-id",
+            name: "lenders-catalog.json",
+          },
+        }),
+        ok: true,
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          data: {
+            entries: [],
+            summary: {
+              activeLoanCount: 0,
+              lenderCount: 0,
+              remainingAmount: 0,
+              trackedLoanCount: 0,
+            },
+          },
+        }),
+        ok: true,
+      });
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+    global.fetch = fetchMock as typeof fetch;
+
+    render(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [],
+          month: "2026-03",
+        }}
+        initialLendersCatalog={{
+          lenders: [
+            {
+              id: "lender-1",
+              name: "Papa",
+              type: "family",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText("Papa")[0]).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+
+    expect(screen.getAllByText("Papa")[0]).toBeInTheDocument();
+    expect(
+      screen.getByText("¿Querés eliminar a Papa del catálogo?"),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Confirmar" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText("¿Querés eliminar a Papa del catálogo?")).not.toBeInTheDocument();
+    });
   });
 
   it("submits a selected lender id and lender name with the loan", async () => {

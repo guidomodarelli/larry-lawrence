@@ -1,0 +1,38 @@
+.root {
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.portalLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.popover {
+  position: fixed;
+  display: grid;
+  gap: 0.75rem;
+  width: min(18rem, calc(100vw - 2rem));
+  padding: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  border-radius: 0.875rem;
+  background: var(--background);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--foreground) 12%, transparent);
+  pointer-events: auto;
+}
+
+.message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
