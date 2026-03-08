@@ -167,7 +167,7 @@ export function ExpenseSheet({
             ) : null}
 
             <div className={cn(styles.grid, styles.topGrid)}>
-              <div className={styles.fieldGroup}>
+              <div className={cn(styles.fieldGroup, styles.fullWidthField)}>
                 <Label htmlFor="expense-description">
                   {getFieldLabel("Descripción", changedFields.has("description"))}
                 </Label>

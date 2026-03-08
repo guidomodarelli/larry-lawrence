@@ -63,6 +63,10 @@
   gap: 0.4rem;
 }
 
+.fullWidthField {
+  grid-column: 1 / -1;
+}
+
 .fieldControlWrapper {
   position: relative;
 }
