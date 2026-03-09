@@ -300,8 +300,8 @@ export function MonthlyExpensesTable({
           <div className={styles.tableHeader}>
             <h2 className={styles.tableTitle}>Detalle del mes</h2>
             <p className={styles.tableDescription}>
-              Gestioná cada gasto desde su menú de acciones y guardalo en un
-              Sheet dedicado.
+              Editá cada gasto desde su menú de acciones y guardá los cambios del
+              mes.
             </p>
           </div>
 

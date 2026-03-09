@@ -92,12 +92,12 @@
 
 .tableContent {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .tableHeader {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .tableTitle {
@@ -112,6 +112,7 @@
 }
 
 .tableWrapper {
+  padding-top: 0.25rem;
   overflow: visible;
 }
 
@@ -222,6 +223,8 @@
 
 .feedback {
   margin: 0;
+  padding-top: 0.875rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
   font-size: 0.875rem;
   color: var(--muted-foreground);
 }
