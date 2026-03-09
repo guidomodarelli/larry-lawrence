@@ -22,7 +22,7 @@ const reactGrabCodexVendorDirectory = path.join(codexPackageDirectory, "vendor")
 const isStrictMode = process.argv.includes("--strict");
 
 function fail(message) {
-  const formattedMessage = `[react-grab-codex] ${message}`;
+  const formattedMessage = `[react-grab-codex setup] ${message}`;
 
   if (isStrictMode) {
     console.error(formattedMessage);
@@ -61,15 +61,17 @@ function ensureGlobalCodexCommand() {
 
   if (commandCheck.error) {
     fail(
-      `Could not execute the global \`codex\` command: ${commandCheck.error.message}`,
+      "Could not execute the global `codex` command during the setup check: "
+        + commandCheck.error.message,
     );
   }
 
   if (commandCheck.status !== 0) {
     const errorOutput = commandCheck.stderr?.trim() || commandCheck.stdout?.trim();
+    const outputSuffix = errorOutput ? ` Output: ${errorOutput}` : "";
 
     fail(
-      `The global \`codex\` command is available but failed to run.${errorOutput ? ` Output: ${errorOutput}` : ""}`,
+      `The global \`codex\` command is available but failed during the setup check.${outputSuffix}`,
     );
   }
 }
@@ -83,7 +85,7 @@ function ensureCodexSdkVendorSetup() {
 
   if (!pathExists(codexSdkVendorDirectory)) {
     fail(
-      "Missing `@openai/codex-sdk/vendor`. Reinstall dependencies and verify `@react-grab/codex` is installed correctly.",
+      "Missing `@openai/codex-sdk/vendor`. Reinstall dependencies and verify the React Grab Codex setup.",
     );
   }
 
@@ -93,12 +95,16 @@ function ensureCodexSdkVendorSetup() {
 
       if (!existingStat.isSymbolicLink()) {
         fail(
-          "`node_modules/@react-grab/codex/vendor` already exists and is not a symlink. Remove it and run `npm install` again.",
+          "`node_modules/@react-grab/codex/vendor` already exists and is not a symlink. Remove it and rerun `npm install` to restore the React Grab Codex setup.",
         );
       }
 
-      const resolvedReactGrabVendorDirectory = fs.realpathSync(reactGrabCodexVendorDirectory);
-      const resolvedCodexSdkVendorDirectory = fs.realpathSync(codexSdkVendorDirectory);
+      const resolvedReactGrabVendorDirectory = fs.realpathSync(
+        reactGrabCodexVendorDirectory,
+      );
+      const resolvedCodexSdkVendorDirectory = fs.realpathSync(
+        codexSdkVendorDirectory,
+      );
 
       if (resolvedReactGrabVendorDirectory === resolvedCodexSdkVendorDirectory) {
         return;
@@ -107,7 +113,7 @@ function ensureCodexSdkVendorSetup() {
       fs.rmSync(reactGrabCodexVendorDirectory, { force: true, recursive: true });
     } catch (error) {
       fail(
-        `Could not verify the React Grab Codex vendor link: ${error instanceof Error ? error.message : String(error)}`,
+        `Could not verify the React Grab Codex setup link: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -122,7 +128,7 @@ function ensureCodexSdkVendorSetup() {
     fs.symlinkSync(relativeVendorTarget, reactGrabCodexVendorDirectory, symlinkType);
   } catch (error) {
     fail(
-      `Could not create the React Grab Codex vendor link: ${error instanceof Error ? error.message : String(error)}`,
+      `Could not create the React Grab Codex setup link: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
