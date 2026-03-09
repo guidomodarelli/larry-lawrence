@@ -404,7 +404,7 @@ describe("MonthlyExpensesPage", () => {
       "true",
     );
     expect(
-      screen.getByText("Los labels amarillos subrayados indican cambios sin guardar."),
+      screen.getByText("Los labels amarillos subrayados marcan cambios sin guardar."),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Subtotal")).toHaveValue("12.000");
     expect(screen.getByLabelText("Total")).toHaveValue("12.000");
@@ -762,7 +762,7 @@ describe("MonthlyExpensesPage", () => {
 
     expect(
       screen.queryByText(
-        "Marcá el check si este gasto representa una deuda con una persona o entidad.",
+        "Marcá esta opción si el gasto corresponde a una deuda.",
       ),
     ).not.toBeInTheDocument();
 
@@ -774,7 +774,7 @@ describe("MonthlyExpensesPage", () => {
 
     expect(
       screen.getByText(
-        "Marcá el check si este gasto representa una deuda con una persona o entidad.",
+        "Marcá esta opción si el gasto corresponde a una deuda.",
       ),
     ).toBeInTheDocument();
 
@@ -786,7 +786,7 @@ describe("MonthlyExpensesPage", () => {
 
     expect(
       screen.queryByText(
-        "Marcá el check si este gasto representa una deuda con una persona o entidad.",
+        "Marcá esta opción si el gasto corresponde a una deuda.",
       ),
     ).not.toBeInTheDocument();
   });

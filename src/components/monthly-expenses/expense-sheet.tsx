@@ -261,10 +261,10 @@ export function ExpenseSheet({
   const title = mode === "create" ? "Nuevo gasto" : "Editar gasto";
   const description =
     mode === "create"
-      ? "Completá el formulario y guardá para persistir el gasto en Drive."
-      : "Editá el gasto y guardá cuando quieras persistir los cambios en Drive.";
+      ? "Completá y guardá este gasto del mes."
+      : "Editá y guardá los cambios de este gasto.";
   const loanHelpMessage =
-    "Marcá el check si este gasto representa una deuda con una persona o entidad.";
+    "Marcá esta opción si el gasto corresponde a una deuda.";
   const hasPendingChanges = changedFields.size > 0;
   const currencyPrefix = draft.currency === "USD" ? "US$" : "$";
   const selectedStartMonthDate = useMemo(
@@ -759,7 +759,7 @@ export function ExpenseSheet({
           <SheetFooter className={styles.footer}>
             {hasPendingChanges ? (
               <p className={styles.changesLegend} role="status">
-                Los labels amarillos subrayados indican cambios sin guardar.
+                Los labels amarillos subrayados marcan cambios sin guardar.
               </p>
             ) : null}
             <div className={styles.footerActions}>
