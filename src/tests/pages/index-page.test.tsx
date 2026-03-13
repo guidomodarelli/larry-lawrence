@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { signIn, signOut, useSession } from "next-auth/react";
+import type { ReactElement } from "react";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { StorageBootstrapResult } from "@/modules/storage/application/results/storage-bootstrap";
 import { VISIBLE_DRIVE_FOLDER_NAME } from "@/modules/storage/shared/visible-drive-folder-name";
 import HomePage from "@/pages/index";
@@ -16,6 +18,10 @@ const mockedUseSession = jest.mocked(useSession);
 const mockedSignIn = jest.mocked(signIn);
 const mockedSignOut = jest.mocked(signOut);
 const originalFetch = global.fetch;
+
+function renderWithProviders(ui: ReactElement) {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 const bootstrap: StorageBootstrapResult = {
   architecture: {
@@ -55,17 +61,17 @@ describe("HomePage", () => {
     global.fetch = originalFetch;
   });
 
-  it("renders the storage playground without the legacy hero card", () => {
-    render(<HomePage bootstrap={bootstrap} />);
+  it("renders the storage playground without legacy cards", () => {
+    renderWithProviders(<HomePage bootstrap={bootstrap} />);
 
-    expect(
-      screen.getByRole("heading", { name: "Probar storage en Google Drive" }),
-    ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Mis Finanzas" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText("Pages Router + SSR + Hexagonal"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Probar storage en Google Drive"),
     ).not.toBeInTheDocument();
     expect(
       screen.getByText("Conectate con Google para habilitar el guardado."),
@@ -78,7 +84,7 @@ describe("HomePage", () => {
   it("starts Google sign in when the disconnected avatar is clicked", async () => {
     const user = userEvent.setup();
 
-    render(<HomePage bootstrap={bootstrap} />);
+    renderWithProviders(<HomePage bootstrap={bootstrap} />);
 
     await user.click(
       screen.getByRole("button", { name: "Conectar cuenta de Google" }),
@@ -104,7 +110,7 @@ describe("HomePage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(<HomePage bootstrap={bootstrap} />);
+    renderWithProviders(<HomePage bootstrap={bootstrap} />);
 
     await user.click(
       screen.getByRole("button", { name: "Cuenta de Google conectada" }),
@@ -117,7 +123,7 @@ describe("HomePage", () => {
   });
 
   it("renders the OAuth setup hint when bootstrap is pending", () => {
-    render(<HomePage bootstrap={{ ...bootstrap, authStatus: "pending" }} />);
+    renderWithProviders(<HomePage bootstrap={{ ...bootstrap, authStatus: "pending" }} />);
 
     expect(
       screen.getByText(
@@ -152,7 +158,7 @@ describe("HomePage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(<HomePage bootstrap={bootstrap} />);
+    renderWithProviders(<HomePage bootstrap={bootstrap} />);
 
     await user.click(
       screen.getByRole("button", { name: "Guardar configuración" }),
@@ -209,7 +215,7 @@ describe("HomePage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(<HomePage bootstrap={bootstrap} />);
+    renderWithProviders(<HomePage bootstrap={bootstrap} />);
 
     await user.click(screen.getByRole("button", { name: "Guardar archivo" }));
 
@@ -263,7 +269,7 @@ describe("HomePage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(<HomePage bootstrap={bootstrap} />);
+    renderWithProviders(<HomePage bootstrap={bootstrap} />);
 
     await user.clear(screen.getByLabelText("Contenido del archivo"));
 

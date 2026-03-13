@@ -2,7 +2,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter } from "next/router";
 import { signIn, signOut, useSession } from "next-auth/react";
+import type { ReactElement } from "react";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   getSafeLendersErrorMessage,
   getSafeLoansReportErrorMessage,
@@ -29,6 +31,10 @@ const mockedUseSession = jest.mocked(useSession);
 const mockedSignIn = jest.mocked(signIn);
 const mockedSignOut = jest.mocked(signOut);
 const originalFetch = global.fetch;
+
+function renderWithProviders(ui: ReactElement) {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 const bootstrap: StorageBootstrapResult = {
   architecture: {
@@ -162,7 +168,7 @@ describe("MonthlyExpensesPage", () => {
   });
 
   it("renders the monthly expenses data table with the selected month", () => {
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -201,7 +207,7 @@ describe("MonthlyExpensesPage", () => {
   });
 
   it("renders the lenders tab when it arrives from the URL state", () => {
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialActiveTab="lenders"
@@ -232,7 +238,7 @@ describe("MonthlyExpensesPage", () => {
       router as unknown as ReturnType<typeof useRouter>,
     );
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -280,7 +286,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -353,7 +359,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -380,7 +386,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -400,7 +406,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -416,7 +422,7 @@ describe("MonthlyExpensesPage", () => {
   });
 
   it("renders an inactive Google connection badge when the user is not authenticated", () => {
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -432,7 +438,7 @@ describe("MonthlyExpensesPage", () => {
   it("starts Google sign in when the disconnected avatar is clicked", async () => {
     const user = userEvent.setup();
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -466,7 +472,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -503,7 +509,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -581,7 +587,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -619,7 +625,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -662,7 +668,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -738,7 +744,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -792,7 +798,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -835,7 +841,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -883,7 +889,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -929,7 +935,7 @@ describe("MonthlyExpensesPage", () => {
   it("filters expenses from the data table by description", async () => {
     const user = userEvent.setup();
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -977,7 +983,7 @@ describe("MonthlyExpensesPage", () => {
       update: jest.fn(),
     } as ReturnType<typeof useSession>);
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -1034,7 +1040,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -1102,7 +1108,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -1205,7 +1211,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialActiveTab="lenders"
@@ -1286,7 +1292,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialActiveTab="lenders"
@@ -1361,7 +1367,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -1491,7 +1497,7 @@ describe("MonthlyExpensesPage", () => {
   });
 
   it("shows a safe report error message without the empty-state copy", () => {
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialActiveTab="debts"
@@ -1536,7 +1542,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialDocument={{
@@ -1596,7 +1602,7 @@ describe("MonthlyExpensesPage", () => {
     } as ReturnType<typeof useSession>);
     global.fetch = fetchMock as typeof fetch;
 
-    render(
+    renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
         initialActiveTab="lenders"

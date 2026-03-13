@@ -1,11 +1,4 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { VISIBLE_DRIVE_FOLDER_NAME } from "@/modules/storage/shared/visible-drive-folder-name";
 import {
   cn,
@@ -74,23 +67,8 @@ export function StoragePlayground({
   userFilesHint,
 }: StoragePlaygroundProps) {
   return (
-    <section
-      aria-labelledby="storage-playground-title"
-      className={styles.section}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2 id="storage-playground-title">
-              Probar storage en Google Drive
-            </h2>
-          </CardTitle>
-          <CardDescription>
-            Guardá configuración interna en la base de datos y un archivo visible
-            del usuario en Drive sin salir de esta pantalla.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className={styles.content}>
+    <section className={styles.section}>
+      <div className={styles.content}>
           <p
             className={cn(
               styles.sessionStatus,
@@ -331,8 +309,7 @@ export function StoragePlayground({
               ) : null}
             </form>
           </div>
-        </CardContent>
-      </Card>
+      </div>
     </section>
   );
 }
