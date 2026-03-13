@@ -88,7 +88,7 @@ export function GoogleAccountAvatar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <TooltipContent side="bottom" sideOffset={8}>{tooltipStatusLabel}</TooltipContent>
+        <TooltipContent className="mr-2" side="bottom" sideOffset={8}>{tooltipStatusLabel}</TooltipContent>
       </Tooltip>
     );
   }
@@ -115,7 +115,7 @@ export function GoogleAccountAvatar({
           </Avatar>
         </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" sideOffset={8}>{tooltipStatusLabel}</TooltipContent>
+      <TooltipContent className="mr-2" side="bottom" sideOffset={8}>{tooltipStatusLabel}</TooltipContent>
     </Tooltip>
   );
 }
