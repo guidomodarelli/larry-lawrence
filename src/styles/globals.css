@@ -90,6 +90,36 @@ body {
   min-height: 100vh;
 }
 
+@view-transition {
+  navigation: auto;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+::view-transition-old(root) {
+  animation: fade-out 0.3s;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 0.3s;
+}
+
 @keyframes circle-in-center {
   from {
     clip-path: circle(0%);
@@ -119,6 +149,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
   [transition-style="in:circle:center"] {
     animation: none;
   }
