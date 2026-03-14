@@ -27,6 +27,10 @@ import {
   getMonthlyExpensesLoansReport,
 } from "@/modules/monthly-expenses/application/use-cases/get-monthly-expenses-loans-report";
 import { getStorageBootstrap } from "@/modules/storage/application/queries/get-storage-bootstrap";
+import {
+  appLogger,
+  createRequestLogContext,
+} from "@/modules/shared/infrastructure/observability/app-logger";
 
 import type {
   MonthlyExpensesPageProps,
@@ -72,12 +76,23 @@ export async function getMonthlyExpensesServerSidePropsForTab(
   const initialSidebarOpen = getRequestedSidebarOpen(
     context.req.cookies?.[SIDEBAR_STATE_COOKIE_NAME],
   );
+  const requestContext = createRequestLogContext(context.req);
   const bootstrap = getStorageBootstrap({
     isGoogleOAuthConfigured: isGoogleOAuthConfigured(),
     requiredScopes: GOOGLE_OAUTH_SCOPES,
   });
 
   if (bootstrap.authStatus !== "configured") {
+    appLogger.warn("monthly-expenses SSR bootstrap is not configured", {
+      context: {
+        ...requestContext,
+        authStatus: bootstrap.authStatus,
+        initialActiveTab,
+        month: selectedMonth,
+        operation: "monthly-expenses-ssr:bootstrap",
+      },
+    });
+
     return {
       props: {
         bootstrap,
@@ -151,6 +166,54 @@ export async function getMonthlyExpensesServerSidePropsForTab(
         }),
       ]);
 
+    if (documentResult.status === "rejected") {
+      appLogger.error("monthly-expenses SSR failed to load document", {
+        context: {
+          ...requestContext,
+          initialActiveTab,
+          month: selectedMonth,
+          operation: "monthly-expenses-ssr:load-document",
+        },
+        error: documentResult.reason,
+      });
+    }
+
+    if (lendersResult.status === "rejected") {
+      appLogger.error("monthly-expenses SSR failed to load lenders", {
+        context: {
+          ...requestContext,
+          initialActiveTab,
+          month: selectedMonth,
+          operation: "monthly-expenses-ssr:load-lenders",
+        },
+        error: lendersResult.reason,
+      });
+    }
+
+    if (reportResult.status === "rejected") {
+      appLogger.error("monthly-expenses SSR failed to load loans report", {
+        context: {
+          ...requestContext,
+          initialActiveTab,
+          month: selectedMonth,
+          operation: "monthly-expenses-ssr:load-loans-report",
+        },
+        error: reportResult.reason,
+      });
+    }
+
+    if (copyableMonthsResult.status === "rejected") {
+      appLogger.error("monthly-expenses SSR failed to load copyable months", {
+        context: {
+          ...requestContext,
+          initialActiveTab,
+          month: selectedMonth,
+          operation: "monthly-expenses-ssr:load-copyable-months",
+        },
+        error: copyableMonthsResult.reason,
+      });
+    }
+
     return {
       props: {
         bootstrap,
@@ -187,6 +250,16 @@ export async function getMonthlyExpensesServerSidePropsForTab(
       },
     };
   } catch (error) {
+    appLogger.error("monthly-expenses SSR request failed", {
+      context: {
+        ...requestContext,
+        initialActiveTab,
+        month: selectedMonth,
+        operation: "monthly-expenses-ssr:get-server-side-props",
+      },
+      error,
+    });
+
     return {
       props: {
         bootstrap,

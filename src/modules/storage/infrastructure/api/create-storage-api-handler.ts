@@ -6,6 +6,10 @@ import {
   GoogleOAuthAuthenticationError,
   GoogleOAuthConfigurationError,
 } from "@/modules/auth/infrastructure/oauth/google-oauth-token";
+import {
+  appLogger,
+  createRequestLogContext,
+} from "@/modules/shared/infrastructure/observability/app-logger";
 
 import { GoogleDriveStorageError } from "../google-drive/google-drive-storage-error";
 
@@ -45,7 +49,17 @@ export function createStorageApiHandler<TResult>({
   }) => Promise<TResult>;
 }): NextApiHandler {
   return async function storageApiHandler(request, response) {
+    const requestContext = createRequestLogContext(request);
+
     if (request.method !== "POST") {
+      appLogger.warn("storage API received an unsupported method", {
+        context: {
+          ...requestContext,
+          operation: "storage-api:method-not-allowed",
+          operationLabel,
+        },
+      });
+
       response.setHeader("Allow", "POST");
 
       return response.status(405).json({
@@ -56,6 +70,14 @@ export function createStorageApiHandler<TResult>({
     const parsedBody = storageRequestBodySchema.safeParse(request.body);
 
     if (!parsedBody.success) {
+      appLogger.warn("storage API received an invalid payload", {
+        context: {
+          ...requestContext,
+          operation: "storage-api:invalid-payload",
+          operationLabel,
+        },
+      });
+
       return response.status(400).json({
         error: `storage:${operationLabel} requires a JSON body with non-empty string values for name, mimeType, and content.`,
       });
@@ -73,6 +95,15 @@ export function createStorageApiHandler<TResult>({
         data: result,
       });
     } catch (error) {
+      appLogger.error("storage API request failed", {
+        context: {
+          ...requestContext,
+          operation: "storage-api:save",
+          operationLabel,
+        },
+        error,
+      });
+
       if (error instanceof GoogleOAuthAuthenticationError) {
         return response.status(401).json({
           error: `Google authentication is required before saving ${operationLabel} to Drive.`,

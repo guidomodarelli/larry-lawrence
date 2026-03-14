@@ -39,6 +39,11 @@ function createMockResponse(): NextApiResponse & MockJsonResponse {
 }
 
 describe("createStorageApiHandler", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
   it("rejects methods other than POST", async () => {
     const getDriveClient = jest.fn();
     const save = jest.fn();
@@ -167,6 +172,7 @@ describe("createStorageApiHandler", () => {
   });
 
   it("returns 500 when Drive storage fails unexpectedly", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
     const handler = createStorageApiHandler({
       getDriveClient: jest.fn().mockResolvedValue({} as drive_v3.Drive),
       operationLabel: "application settings",
@@ -194,6 +200,7 @@ describe("createStorageApiHandler", () => {
       error:
         "We could not save application settings to Google Drive. Try again later.",
     });
+    expect(errorSpy).toHaveBeenCalled();
   });
 
   it("returns 503 when Google Drive API is disabled", async () => {

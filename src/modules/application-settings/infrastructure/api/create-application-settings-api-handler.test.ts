@@ -37,6 +37,11 @@ function createMockResponse(): NextApiResponse & MockJsonResponse {
 }
 
 describe("createApplicationSettingsApiHandler", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
   it("returns 201 when settings are saved", async () => {
     const database = {} as TursoDatabase;
     const save = jest.fn().mockResolvedValue({
@@ -73,5 +78,33 @@ describe("createApplicationSettingsApiHandler", () => {
       userSubject: "google-user-123",
     });
     expect(response.statusCode).toBe(201);
+  });
+
+  it("logs and returns 400 when settings save fails with an application error", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const database = {} as TursoDatabase;
+    const handler = createApplicationSettingsApiHandler({
+      getDatabase: jest.fn().mockReturnValue(database),
+      getUserSubject: jest.fn().mockResolvedValue("google-user-123"),
+      save: jest.fn().mockRejectedValue(new Error("invalid settings")),
+    });
+
+    const request = {
+      body: {
+        content: '{"theme":"dark"}',
+        mimeType: "application/json",
+        name: "application-settings.json",
+      },
+      method: "POST",
+    } as NextApiRequest;
+    const response = createMockResponse();
+
+    await handler(request, response);
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).toEqual({
+      error: "invalid settings",
+    });
+    expect(errorSpy).toHaveBeenCalled();
   });
 });

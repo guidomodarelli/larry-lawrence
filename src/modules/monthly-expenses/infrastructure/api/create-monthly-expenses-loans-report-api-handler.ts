@@ -6,6 +6,10 @@ import {
 } from "@/modules/auth/infrastructure/oauth/google-oauth-token";
 import type { TursoDatabase } from "@/modules/shared/infrastructure/database/drizzle/turso-database";
 import { TursoConfigurationError } from "@/modules/shared/infrastructure/database/turso-server-config";
+import {
+  appLogger,
+  createRequestLogContext,
+} from "@/modules/shared/infrastructure/observability/app-logger";
 
 async function getDefaultUserSubject(request: NextApiRequest) {
   const { getAuthenticatedUserSubjectFromRequest } = await import(
@@ -36,7 +40,19 @@ export function createMonthlyExpensesLoansReportApiHandler<TResult>({
   }) => Promise<TResult>;
 }): NextApiHandler {
   return async function monthlyExpensesLoansReportApiHandler(request, response) {
+    const requestContext = createRequestLogContext(request);
+
     if (request.method !== "GET") {
+      appLogger.warn(
+        "monthly-expenses-report API received an unsupported method",
+        {
+          context: {
+            ...requestContext,
+            operation: "monthly-expenses-report-api:method-not-allowed",
+          },
+        },
+      );
+
       response.setHeader("Allow", "GET");
 
       return response.status(405).json({
@@ -53,6 +69,14 @@ export function createMonthlyExpensesLoansReportApiHandler<TResult>({
         data: await load({ database, userSubject }),
       });
     } catch (error) {
+      appLogger.error("monthly-expenses-report API request failed", {
+        context: {
+          ...requestContext,
+          operation: "monthly-expenses-report-api:get",
+        },
+        error,
+      });
+
       if (error instanceof GoogleOAuthAuthenticationError) {
         return response.status(401).json({
           error:

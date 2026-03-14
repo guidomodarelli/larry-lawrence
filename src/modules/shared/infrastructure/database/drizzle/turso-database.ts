@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   requireTursoServerConfig,
 } from "../turso-server-config";
+import { appLogger } from "@/modules/shared/infrastructure/observability/app-logger";
 import * as schema from "./schema";
 
 export type TursoDatabase = LibSQLDatabase<typeof schema>;
@@ -29,6 +30,13 @@ async function ensureMigrationsAreApplied(database: TursoDatabase) {
     pendingMigration = migrate(database, {
       migrationsFolder,
     }).catch((error) => {
+      appLogger.error("Turso migration failed", {
+        context: {
+          migrationsFolder,
+          operation: "turso-database:ensure-migrations-are-applied",
+        },
+        error,
+      });
       pendingMigration = null;
       throw error;
     });

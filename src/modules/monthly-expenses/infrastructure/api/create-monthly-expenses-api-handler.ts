@@ -7,6 +7,10 @@ import {
 } from "@/modules/auth/infrastructure/oauth/google-oauth-token";
 import type { TursoDatabase } from "@/modules/shared/infrastructure/database/drizzle/turso-database";
 import { TursoConfigurationError } from "@/modules/shared/infrastructure/database/turso-server-config";
+import {
+  appLogger,
+  createRequestLogContext,
+} from "@/modules/shared/infrastructure/observability/app-logger";
 
 import type { SaveMonthlyExpensesCommand } from "../../application/commands/save-monthly-expenses-command";
 
@@ -73,7 +77,15 @@ export function createMonthlyExpensesApiHandler<TLoadResult, TSaveResult>({
   }) => Promise<TSaveResult>;
 }): NextApiHandler {
   return async function monthlyExpensesApiHandler(request, response) {
+    const requestContext = createRequestLogContext(request);
+
     if (request.method !== "GET" && request.method !== "POST") {
+      appLogger.warn("monthly-expenses API received an unsupported method", {
+        context: {
+          ...requestContext,
+          operation: "monthly-expenses-api:method-not-allowed",
+        },
+      });
       response.setHeader("Allow", "GET, POST");
 
       return response.status(405).json({
@@ -91,6 +103,13 @@ export function createMonthlyExpensesApiHandler<TLoadResult, TSaveResult>({
       });
 
       if (!parsedQuery.success) {
+        appLogger.warn("monthly-expenses API received an invalid GET month", {
+          context: {
+            ...requestContext,
+            operation: "monthly-expenses-api:get:invalid-month-query",
+          },
+        });
+
         return response.status(400).json({
           error:
             "monthly-expenses requires a month query parameter in YYYY-MM format for GET requests.",
@@ -110,6 +129,15 @@ export function createMonthlyExpensesApiHandler<TLoadResult, TSaveResult>({
           }),
         });
       } catch (error) {
+        appLogger.error("monthly-expenses API GET request failed", {
+          context: {
+            ...requestContext,
+            month: parsedQuery.data.month,
+            operation: "monthly-expenses-api:get",
+          },
+          error,
+        });
+
         if (error instanceof GoogleOAuthAuthenticationError) {
           return response.status(401).json({
             error:
@@ -140,6 +168,13 @@ export function createMonthlyExpensesApiHandler<TLoadResult, TSaveResult>({
     const parsedBody = monthlyExpensesRequestBodySchema.safeParse(request.body);
 
     if (!parsedBody.success) {
+      appLogger.warn("monthly-expenses API received an invalid POST payload", {
+        context: {
+          ...requestContext,
+          operation: "monthly-expenses-api:post:invalid-payload",
+        },
+      });
+
       return response.status(400).json({
         error:
           "monthly-expenses requires a month in YYYY-MM format, valid expense rows, and complete loan details when a debt is included.",
@@ -159,6 +194,15 @@ export function createMonthlyExpensesApiHandler<TLoadResult, TSaveResult>({
       response.status(204).end();
       return;
     } catch (error) {
+      appLogger.error("monthly-expenses API POST request failed", {
+        context: {
+          ...requestContext,
+          month: parsedBody.data.month,
+          operation: "monthly-expenses-api:post",
+        },
+        error,
+      });
+
       if (error instanceof GoogleOAuthAuthenticationError) {
         return response.status(401).json({
           error:

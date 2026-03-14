@@ -8,6 +8,7 @@ import {
   refreshGoogleSessionToken,
   type GoogleSessionToken,
 } from "../oauth/google-oauth-token";
+import { appLogger } from "@/modules/shared/infrastructure/observability/app-logger";
 
 const googleOAuthServerConfig = getGoogleOAuthServerConfig();
 
@@ -48,7 +49,14 @@ export const authOptions: NextAuthOptions = {
 
       try {
         return await refreshGoogleSessionToken(googleSessionToken);
-      } catch {
+      } catch (error) {
+        appLogger.error("next-auth failed to refresh Google access token", {
+          context: {
+            operation: "next-auth:jwt:refresh-google-session-token",
+          },
+          error,
+        });
+
         return {
           ...googleSessionToken,
           googleTokenError: "RefreshGoogleAccessTokenError",

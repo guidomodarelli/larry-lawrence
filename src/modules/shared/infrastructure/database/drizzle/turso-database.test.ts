@@ -83,6 +83,8 @@ describe("createMigratedTursoDatabase", () => {
   });
 
   it("retries migrations after a failed first attempt", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+
     await jest.isolateModulesAsync(async () => {
       const { createClient } = await import("@libsql/client");
       const { drizzle } = await import("drizzle-orm/libsql");
@@ -107,6 +109,7 @@ describe("createMigratedTursoDatabase", () => {
       await expect(createMigratedTursoDatabase()).rejects.toThrow(
         "migration failed",
       );
+      expect(errorSpy).toHaveBeenCalled();
       await expect(createMigratedTursoDatabase()).resolves.toEqual({
         id: "db-2",
       });

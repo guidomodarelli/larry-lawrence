@@ -37,6 +37,11 @@ function createMockResponse(): NextApiResponse & MockJsonResponse {
 }
 
 describe("createMonthlyExpensesLoansReportApiHandler", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
   it("rejects methods other than GET", async () => {
     const handler = createMonthlyExpensesLoansReportApiHandler({
       load: jest.fn(),
@@ -87,5 +92,28 @@ describe("createMonthlyExpensesLoansReportApiHandler", () => {
       userSubject: "google-user-123",
     });
     expect(response.statusCode).toBe(200);
+  });
+
+  it("logs and returns 400 when report loading fails with a typed error", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const database = {} as TursoDatabase;
+    const handler = createMonthlyExpensesLoansReportApiHandler({
+      getDatabase: jest.fn().mockResolvedValue(database),
+      getUserSubject: jest.fn().mockResolvedValue("google-user-123"),
+      load: jest.fn().mockRejectedValue(new Error("report not available")),
+    });
+
+    const request = {
+      method: "GET",
+    } as NextApiRequest;
+    const response = createMockResponse();
+
+    await handler(request, response);
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).toEqual({
+      error: "report not available",
+    });
+    expect(errorSpy).toHaveBeenCalled();
   });
 });

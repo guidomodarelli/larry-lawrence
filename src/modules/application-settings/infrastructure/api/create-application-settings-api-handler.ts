@@ -7,6 +7,10 @@ import {
 } from "@/modules/auth/infrastructure/oauth/google-oauth-token";
 import type { TursoDatabase } from "@/modules/shared/infrastructure/database/drizzle/turso-database";
 import { TursoConfigurationError } from "@/modules/shared/infrastructure/database/turso-server-config";
+import {
+  appLogger,
+  createRequestLogContext,
+} from "@/modules/shared/infrastructure/observability/app-logger";
 
 const applicationSettingsRequestBodySchema = z.object({
   content: z.string().trim().min(1),
@@ -45,7 +49,16 @@ export function createApplicationSettingsApiHandler<TResult>({
   }) => Promise<TResult>;
 }): NextApiHandler {
   return async function applicationSettingsApiHandler(request, response) {
+    const requestContext = createRequestLogContext(request);
+
     if (request.method !== "POST") {
+      appLogger.warn("application-settings API received an unsupported method", {
+        context: {
+          ...requestContext,
+          operation: "application-settings-api:method-not-allowed",
+        },
+      });
+
       response.setHeader("Allow", "POST");
 
       return response.status(405).json({
@@ -59,6 +72,13 @@ export function createApplicationSettingsApiHandler<TResult>({
     );
 
     if (!parsedBody.success) {
+      appLogger.warn("application-settings API received an invalid payload", {
+        context: {
+          ...requestContext,
+          operation: "application-settings-api:invalid-payload",
+        },
+      });
+
       return response.status(400).json({
         error:
           "application-settings requires a JSON body with non-empty string values for name, mimeType, and content.",
@@ -79,6 +99,14 @@ export function createApplicationSettingsApiHandler<TResult>({
         data: result,
       });
     } catch (error) {
+      appLogger.error("application-settings API request failed", {
+        context: {
+          ...requestContext,
+          operation: "application-settings-api:post",
+        },
+        error,
+      });
+
       if (error instanceof GoogleOAuthAuthenticationError) {
         return response.status(401).json({
           error:

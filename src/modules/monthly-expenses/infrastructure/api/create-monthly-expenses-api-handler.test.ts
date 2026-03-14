@@ -46,6 +46,11 @@ function createMockResponse(): NextApiResponse & MockJsonResponse {
 }
 
 describe("createMonthlyExpensesApiHandler", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
   it("rejects methods other than GET and POST", async () => {
     const handler = createMonthlyExpensesApiHandler({
       load: jest.fn(),
@@ -308,6 +313,7 @@ describe("createMonthlyExpensesApiHandler", () => {
   });
 
   it("returns 401 when Google authentication is missing", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
     const handler = createMonthlyExpensesApiHandler({
       load: jest.fn(),
       getDatabase: jest.fn(),
@@ -342,6 +348,7 @@ describe("createMonthlyExpensesApiHandler", () => {
     expect(response.body).toEqual({
       error: "Google authentication is required before saving monthly expenses.",
     });
+    expect(errorSpy).toHaveBeenCalled();
   });
 
   it("returns 500 when database configuration is missing", async () => {

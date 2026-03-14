@@ -7,6 +7,10 @@ import {
 } from "@/modules/auth/infrastructure/oauth/google-oauth-token";
 import type { TursoDatabase } from "@/modules/shared/infrastructure/database/drizzle/turso-database";
 import { TursoConfigurationError } from "@/modules/shared/infrastructure/database/turso-server-config";
+import {
+  appLogger,
+  createRequestLogContext,
+} from "@/modules/shared/infrastructure/observability/app-logger";
 
 const lenderSchema = z.object({
   id: z.string().trim().min(1),
@@ -55,7 +59,16 @@ export function createLendersApiHandler<TGetResult, TSaveResult>({
   }) => Promise<TSaveResult>;
 }): NextApiHandler {
   return async function lendersApiHandler(request, response) {
+    const requestContext = createRequestLogContext(request);
+
     if (request.method !== "GET" && request.method !== "POST") {
+      appLogger.warn("lenders API received an unsupported method", {
+        context: {
+          ...requestContext,
+          operation: "lenders-api:method-not-allowed",
+        },
+      });
+
       response.setHeader("Allow", "GET, POST");
 
       return response.status(405).json({
@@ -76,6 +89,13 @@ export function createLendersApiHandler<TGetResult, TSaveResult>({
       const parsedBody = lendersRequestBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
+        appLogger.warn("lenders API received an invalid payload", {
+          context: {
+            ...requestContext,
+            operation: "lenders-api:post:invalid-payload",
+          },
+        });
+
         return response.status(400).json({
           error:
             "lenders requires a JSON body with unique lenders, valid types, and non-empty ids and names.",
@@ -91,6 +111,15 @@ export function createLendersApiHandler<TGetResult, TSaveResult>({
         }),
       });
     } catch (error) {
+      appLogger.error("lenders API request failed", {
+        context: {
+          ...requestContext,
+          operation:
+            request.method === "GET" ? "lenders-api:get" : "lenders-api:post",
+        },
+        error,
+      });
+
       if (error instanceof GoogleOAuthAuthenticationError) {
         return response.status(401).json({
           error:
