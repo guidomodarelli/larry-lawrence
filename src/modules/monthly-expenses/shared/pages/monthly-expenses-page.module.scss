@@ -1,0 +1,43 @@
+.page {
+  min-height: 100vh;
+  padding: 1rem 1.25rem 3rem;
+}
+
+.layout {
+  width: min(88rem, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.sidebarHeader {
+  padding: 1rem 0.75rem 0.5rem;
+}
+
+.sidebarTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--sidebar-foreground) 92%, var(--sidebar-primary) 8%);
+}
+
+.sidebarSubtitle {
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--sidebar-foreground) 58%, var(--sidebar-accent-foreground) 42%);
+}
+
+.sidebarTrigger {
+  margin-right: auto;
+}
+
+@media (min-width: 768px) {
+  .sidebarTrigger {
+    display: none;
+  }
+}

@@ -19,3 +19,16 @@ Object.defineProperty(globalThis, "ResizeObserver", {
 	writable: true,
 	value: ResizeObserverMock,
 });
+
+Object.defineProperty(globalThis, "matchMedia", {
+	configurable: true,
+	writable: true,
+	value: (query: string) => ({
+		addEventListener: jest.fn(),
+		dispatchEvent: jest.fn(),
+		matches: false,
+		media: query,
+		onchange: null,
+		removeEventListener: jest.fn(),
+	}),
+});

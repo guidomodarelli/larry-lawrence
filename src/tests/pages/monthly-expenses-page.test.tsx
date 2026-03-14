@@ -15,7 +15,7 @@ import type { StorageBootstrapResult } from "@/modules/storage/application/resul
 import MonthlyExpensesPage, {
   getRequestedMonthlyExpensesTab,
   getReportProviderFilterOptions,
-} from "@/pages/index";
+} from "@/pages/gastos";
 
 jest.mock("next/router", () => ({
   useRouter: jest.fn(),
@@ -117,7 +117,7 @@ function createMockRouter(
 ) {
   return {
     isReady: true,
-    pathname: "/",
+    pathname: "/gastos",
     query: {},
     replace: jest.fn().mockResolvedValue(true),
     ...overrides,
@@ -390,25 +390,14 @@ describe("MonthlyExpensesPage", () => {
     );
 
     expect(
-      screen.getByRole("tabpanel", { name: "Prestadores" }),
+      screen.getByText("Guardá prestadores para reutilizarlos en tus deudas."),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Gastos del mes" }),
     ).not.toBeInTheDocument();
   });
 
-  it("updates the URL query when switching tabs and preserves the month", async () => {
-    const user = userEvent.setup();
-    const router = createMockRouter({
-      query: {
-        month: "2026-03",
-      },
-    });
-
-    mockedUseRouter.mockReturnValue(
-      router as unknown as ReturnType<typeof useRouter>,
-    );
-
+  it("renders sidebar links for the section routes", () => {
     renderWithProviders(
       <MonthlyExpensesPage
         {...basePageProps}
@@ -419,25 +408,12 @@ describe("MonthlyExpensesPage", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: "Prestadores" }));
-
     expect(
-      screen.getByRole("tabpanel", { name: "Prestadores" }),
-    ).toBeInTheDocument();
-    expect(router.replace).toHaveBeenCalledWith(
-      {
-        pathname: "/",
-        query: {
-          month: "2026-03",
-          tab: "lenders",
-        },
-      },
-      undefined,
-      {
-        scroll: false,
-        shallow: true,
-      },
-    );
+      screen.getByRole("link", { name: "Prestadores" }),
+    ).toHaveAttribute("href", "/prestadores");
+    expect(
+      screen.getByRole("link", { name: "Reporte de deudas" }),
+    ).toHaveAttribute("href", "/reportes/deudas");
   });
 
   it("updates the URL query when changing month and preserves the active tab", async () => {
@@ -469,10 +445,9 @@ describe("MonthlyExpensesPage", () => {
 
     expect(router.replace).toHaveBeenCalledWith(
       {
-        pathname: "/",
+        pathname: "/gastos",
         query: {
           month: "2026-04",
-          tab: "expenses",
         },
       },
       undefined,
@@ -735,7 +710,7 @@ describe("MonthlyExpensesPage", () => {
     );
 
     expect(mockedSignIn).toHaveBeenCalledWith("google", {
-      callbackUrl: "/",
+      callbackUrl: "/gastos",
     });
   });
 
@@ -770,7 +745,7 @@ describe("MonthlyExpensesPage", () => {
     await user.click(screen.getByRole("menuitem", { name: "Desconectar Google" }));
 
     expect(mockedSignOut).toHaveBeenCalledWith({
-      callbackUrl: "/",
+      callbackUrl: "/gastos",
     });
   });
 

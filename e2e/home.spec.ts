@@ -3,8 +3,9 @@ import { expect, test } from "@playwright/test";
 test("renders monthly expenses on root route", async ({ page }) => {
   await page.goto("/");
 
+  await expect(page).toHaveURL(/\/gastos/);
   await expect(
-    page.getByRole("tab", { name: "Gastos del mes" }),
+    page.getByRole("link", { name: "Gastos del mes" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Detalle del mes" }),

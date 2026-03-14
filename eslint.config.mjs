@@ -70,6 +70,8 @@ const eslintConfig = defineConfig([
         { mode: "full", pattern: "src/pages/**/*", type: "pages" },
         { mode: "full", pattern: "src/components/*", type: "components" },
         { mode: "full", pattern: "src/components/**/*", type: "components" },
+        { mode: "full", pattern: "src/hooks/*", type: "hooks" },
+        { mode: "full", pattern: "src/hooks/**/*", type: "hooks" },
         { mode: "full", pattern: "src/lib/**/*api*", type: "client-adapters" },
         {
           mode: "full",
