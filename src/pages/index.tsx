@@ -181,7 +181,7 @@ function createEmptyRow(): MonthlyExpensesEditableRow {
     lenderName: "",
     loanEndMonth: "",
     loanProgress: "",
-    occurrencesPerMonth: "",
+    occurrencesPerMonth: "1",
     startMonth: "",
     subtotal: "",
     total: "0.00",

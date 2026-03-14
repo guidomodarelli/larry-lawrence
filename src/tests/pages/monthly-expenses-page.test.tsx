@@ -335,10 +335,10 @@ describe("MonthlyExpensesPage", () => {
     ).toBeInTheDocument();
     expect(mockedToast).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Veces al mes")).toHaveValue(1);
 
     await user.type(screen.getByLabelText("Descripción"), "Internet");
     await user.type(screen.getByLabelText("Subtotal"), "15000");
-    await user.type(screen.getByLabelText("Veces al mes"), "1");
 
     expect(screen.getByLabelText("Subtotal")).toHaveValue("15.000");
     expect(screen.getByLabelText("Total")).toHaveValue("15.000");
@@ -635,7 +635,7 @@ describe("MonthlyExpensesPage", () => {
     await user.type(subtotalInput, "50");
 
     expect(subtotalInput).toHaveValue("1.234,50");
-    expect(screen.getByLabelText("Total")).toHaveValue("0");
+    expect(screen.getByLabelText("Total")).toHaveValue("1.234,50");
   });
 
   it("blocks sheet close on outside click when there are unsaved changes and can save from the warning dialog", async () => {
@@ -799,17 +799,11 @@ describe("MonthlyExpensesPage", () => {
     await user.type(screen.getByLabelText("Subtotal"), "1000");
 
     expect(screen.getByText("Completá la descripción.")).toBeInTheDocument();
-    expect(
-      screen.getByText("Ingresá una cantidad mayor a 0."),
-    ).toBeInTheDocument();
     expect(screen.getByLabelText("Descripción")).toHaveAttribute(
       "aria-invalid",
       "true",
     );
-    expect(screen.getByLabelText("Veces al mes")).toHaveAttribute(
-      "aria-invalid",
-      "true",
-    );
+    expect(screen.getByLabelText("Veces al mes")).toHaveValue(1);
     expect(screen.getByRole("button", { name: "Guardar" })).toBeDisabled();
   });
 
