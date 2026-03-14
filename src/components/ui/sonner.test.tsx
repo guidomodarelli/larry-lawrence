@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { render, screen } from "@testing-library/react";
 import { useTheme } from "next-themes";
 
@@ -8,7 +9,13 @@ jest.mock("next-themes", () => ({
 }));
 
 const mockedUseTheme = jest.mocked(useTheme);
-const mockedSonner = jest.fn(() => <div data-testid="sonner" />);
+const mockedSonner: jest.Mock<ReactElement, [unknown]> = jest.fn(
+  (...args: [unknown]) => {
+    void args;
+
+    return <div data-testid="sonner" />;
+  },
+);
 
 jest.mock("sonner", () => ({
   Toaster: (props: unknown) => mockedSonner(props),

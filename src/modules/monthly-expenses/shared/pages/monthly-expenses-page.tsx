@@ -1,20 +1,13 @@
 import type {
   GetServerSidePropsContext,
 } from "next";
-import Link from "next/link";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import {
-  IconBuildingBank,
-  IconCalendarDollar,
-  IconReportMoney,
-} from "@tabler/icons-react";
 
-import { GoogleAccountAvatar } from "@/components/auth/google-account-avatar";
-import { ThemeModeToggle } from "@/components/theme/theme-mode-toggle";
+import { FinanceAppShell } from "@/components/finance-app-shell/finance-app-shell";
 import {
   type LenderOption,
 } from "@/components/monthly-expenses/lender-picker";
@@ -25,19 +18,6 @@ import {
   type MonthlyExpensesEditableRow,
 } from "@/components/monthly-expenses/monthly-expenses-table";
 import type { ExpenseEditableFieldName } from "@/components/monthly-expenses/expense-sheet";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
 import {
   type LendersCatalogDocumentResult,
 } from "@/modules/lenders/application/results/lenders-catalog-document-result";
@@ -68,8 +48,6 @@ import {
   saveMonthlyExpensesDocumentViaApi,
 } from "@/modules/monthly-expenses/infrastructure/api/monthly-expenses-api";
 import type { StorageBootstrapResult } from "@/modules/storage/application/results/storage-bootstrap";
-
-import styles from "./monthly-expenses-page.module.scss";
 
 export type MonthlyExpensesPageProps = {
   bootstrap: StorageBootstrapResult;
@@ -515,7 +493,7 @@ export default function MonthlyExpensesPage({
 }: MonthlyExpensesPageProps) {
   const router = useRouter();
   const isOAuthConfigured = bootstrap.authStatus === "configured";
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const activeTab = initialActiveTab;
   const [formState, setFormState] = useState<MonthlyExpensesFormState>(
     createMonthlyExpensesFormState(initialDocument),
@@ -536,24 +514,6 @@ export default function MonthlyExpensesPage({
 
   const isAuthenticated = status === "authenticated";
   const isSessionLoading = status === "loading";
-  const sessionUserImage = session?.user?.image?.trim() || null;
-  const sessionUserName = session?.user?.name?.trim() || null;
-
-  const handleGoogleAccountConnect = () => {
-    if (!isOAuthConfigured) {
-      return;
-    }
-
-    void signIn("google", {
-      callbackUrl: "/gastos",
-    });
-  };
-
-  const handleGoogleAccountDisconnect = () => {
-    void signOut({
-      callbackUrl: "/gastos",
-    });
-  };
   const expenseValidationMessage = getExpenseValidationMessage(
     formState.month,
     expenseSheetState.draft,
@@ -1169,81 +1129,14 @@ export default function MonthlyExpensesPage({
   };
 
   return (
-    <SidebarProvider defaultOpen={initialSidebarOpen}>
-      <Sidebar className={styles.sidebarShell} collapsible="icon" variant="inset">
-        <SidebarHeader
-          className={`${styles.sidebarHeader} group-data-[collapsible=icon]:hidden`}
-        >
-          <p className={styles.sidebarTitle}>Mis finanzas</p>
-          <p className={styles.sidebarSubtitle}>Navegacion principal</p>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Secciones</SidebarGroupLabel>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={activeTab === "expenses"}
-                  tooltip="Gastos del mes"
-                >
-                  <Link href={{ pathname: "/gastos", query: { month: formState.month } }}>
-                    <IconCalendarDollar />
-                    <span>Gastos del mes</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={activeTab === "lenders"}
-                  tooltip="Prestadores"
-                >
-                  <Link href="/prestadores">
-                    <IconBuildingBank />
-                    <span>Prestadores</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={activeTab === "debts"}
-                  tooltip="Reporte de deudas"
-                >
-                  <Link href="/reportes/deudas">
-                    <IconReportMoney />
-                    <span>Reporte de deudas</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
-        <div className={styles.sidebarEdgeTriggerDock}>
-          <SidebarTrigger className={styles.sidebarEdgeTrigger} />
-        </div>
-      </Sidebar>
-
-      <SidebarInset>
-        <main className={styles.page}>
-          <div className={styles.layout}>
-            <div className={styles.topBar}>
-              <SidebarTrigger
-                aria-label="Abrir menu lateral"
-                className={styles.mobileSidebarTrigger}
-              />
-              <ThemeModeToggle />
-              <GoogleAccountAvatar
-                onConnect={handleGoogleAccountConnect}
-                onDisconnect={handleGoogleAccountDisconnect}
-                status={status}
-                userImage={sessionUserImage}
-                userName={sessionUserName}
-              />
-            </div>
-
-            {activeTab === "expenses" ? (
+    <FinanceAppShell
+      activeSection={activeTab}
+      authRedirectPath="/gastos"
+      expensesMonth={formState.month}
+      initialSidebarOpen={initialSidebarOpen}
+      isOAuthConfigured={isOAuthConfigured}
+    >
+      {activeTab === "expenses" ? (
               <MonthlyExpensesTable
                 actionDisabled={actionDisabled}
                 changedFields={changedExpenseFields}
@@ -1278,9 +1171,9 @@ export default function MonthlyExpensesPage({
                 showUnsavedChangesDialog={expenseSheetState.showUnsavedChangesDialog}
                 validationMessage={expenseValidationMessage}
               />
-            ) : null}
+      ) : null}
 
-            {activeTab === "lenders" ? (
+      {activeTab === "lenders" ? (
               <LendersPanel
                 feedbackMessage={lendersFeedbackMessage}
                 feedbackTone={lendersFeedbackTone}
@@ -1295,9 +1188,9 @@ export default function MonthlyExpensesPage({
                 onFieldChange={handleLenderFieldChange}
                 onSubmit={handleLendersSubmit}
               />
-            ) : null}
+      ) : null}
 
-            {activeTab === "debts" ? (
+      {activeTab === "debts" ? (
               <MonthlyExpensesLoansReport
                 entries={filteredReportEntries}
                 feedbackMessage={reportState.error}
@@ -1309,10 +1202,7 @@ export default function MonthlyExpensesPage({
                 onResetFilters={handleReportFiltersReset}
                 onTypeFilterChange={handleReportTypeFilterChange}
               />
-            ) : null}
-          </div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+      ) : null}
+    </FinanceAppShell>
   );
 }

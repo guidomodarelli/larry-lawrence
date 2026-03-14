@@ -184,15 +184,14 @@ function getMonthlyExpensesSavePayload(fetchMock: jest.Mock) {
   expect(saveCall).toBeDefined();
 
   const [, options] = saveCall as [string, RequestInit];
+  const headers = new Headers(options.headers);
 
   expect(options).toEqual(
     expect.objectContaining({
-      headers: {
-        "Content-Type": "application/json",
-      },
       method: "POST",
     }),
   );
+  expect(headers.get("Content-Type")).toBe("application/json");
 
   return JSON.parse(String(options.body));
 }
@@ -410,6 +409,9 @@ describe("MonthlyExpensesPage", () => {
       />,
     );
 
+    expect(
+      screen.getByRole("link", { name: "Cotizaciones del dólar" }),
+    ).toHaveAttribute("href", "/cotizaciones");
     expect(
       screen.getByRole("link", { name: "Prestadores" }),
     ).toHaveAttribute("href", "/prestadores");
@@ -633,7 +635,7 @@ describe("MonthlyExpensesPage", () => {
     await user.click(screen.getByRole("button", { name: "Copia de" }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
         "/api/storage/monthly-expenses?month=2026-02",
       );
     });
@@ -1948,16 +1950,15 @@ describe("MonthlyExpensesPage", () => {
 
     await waitFor(() => {
       const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const headers = new Headers(options.headers);
 
       expect(url).toBe("/api/storage/lenders");
       expect(options).toEqual(
         expect.objectContaining({
-          headers: {
-            "Content-Type": "application/json",
-          },
           method: "POST",
         }),
       );
+      expect(headers.get("Content-Type")).toBe("application/json");
       expect(JSON.parse(String(options.body))).toEqual({
         lenders: [
           {

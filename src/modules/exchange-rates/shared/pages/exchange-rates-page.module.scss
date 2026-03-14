@@ -1,0 +1,94 @@
+.section {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.hero {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.eyebrow {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.description {
+  color: var(--muted-foreground);
+  max-width: 42rem;
+}
+
+.cardsGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.rateCard {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.rateLabel {
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.rateValue {
+  font-size: clamp(1.6rem, 2vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rateHint {
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+.settingsCard {
+  display: grid;
+  gap: 1rem;
+}
+
+.settingsForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.settingsField {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.settingsActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.helperText {
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+.feedbackText {
+  font-size: 0.9rem;
+}
+
+.errorText {
+  color: var(--destructive);
+}
+
+.readOnlyValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+}

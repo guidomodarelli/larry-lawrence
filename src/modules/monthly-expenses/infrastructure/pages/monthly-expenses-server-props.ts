@@ -31,6 +31,10 @@ import {
   appLogger,
   createRequestLogContext,
 } from "@/modules/shared/infrastructure/observability/app-logger";
+import {
+  getRequestedSidebarOpen,
+  SIDEBAR_STATE_COOKIE_NAME,
+} from "@/modules/shared/infrastructure/pages/sidebar-state";
 
 import type {
   MonthlyExpensesPageProps,
@@ -38,8 +42,6 @@ import type {
 } from "@/modules/monthly-expenses/shared/pages/monthly-expenses-page";
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
-const SIDEBAR_STATE_COOKIE_NAME = "mis-finanzas.sidebar.open";
-
 function getCurrentMonthIdentifier(date: Date = new Date()): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -54,18 +56,6 @@ function getRequestedMonth(queryValue: GetServerSidePropsContext["query"]["month
   return normalizedMonth && MONTH_PATTERN.test(normalizedMonth)
     ? normalizedMonth
     : getCurrentMonthIdentifier();
-}
-
-function getRequestedSidebarOpen(cookieValue: string | undefined): boolean {
-  if (cookieValue === "false") {
-    return false;
-  }
-
-  if (cookieValue === "true") {
-    return true;
-  }
-
-  return true;
 }
 
 export async function getMonthlyExpensesServerSidePropsForTab(

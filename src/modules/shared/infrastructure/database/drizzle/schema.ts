@@ -1,4 +1,4 @@
-import { primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const monthlyExpensesDocumentsTable = sqliteTable(
   "monthly_expenses_documents",
@@ -38,4 +38,13 @@ export const applicationSettingsDocumentsTable = sqliteTable(
       columns: [table.userSubject, table.name],
     }),
   ],
+);
+
+export const globalExchangeRateSettingsTable = sqliteTable(
+  "global_exchange_rate_settings",
+  {
+    iibbRateDecimal: real("iibb_rate_decimal").notNull(),
+    settingKey: text("setting_key").primaryKey(),
+    updatedAtIso: text("updated_at_iso").notNull(),
+  },
 );

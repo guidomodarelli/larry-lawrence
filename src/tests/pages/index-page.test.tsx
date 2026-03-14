@@ -31,6 +31,16 @@ describe("HomePage redirect", () => {
     );
   });
 
+  it("maps legacy tab=exchange-rates to /cotizaciones", async () => {
+    const result = await getServerSideProps(createContext({
+      tab: "exchange-rates",
+    }));
+
+    expect("redirect" in result && result.redirect?.destination).toBe(
+      "/cotizaciones",
+    );
+  });
+
   it("preserves month when redirecting to /gastos", async () => {
     const result = await getServerSideProps(createContext({
       month: "2026-04",

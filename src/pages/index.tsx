@@ -1,6 +1,11 @@
 import type { GetServerSideProps, GetServerSidePropsContext } from "next";
 
-const MONTHLY_EXPENSES_TAB_KEYS = ["expenses", "lenders", "debts"] as const;
+const MONTHLY_EXPENSES_TAB_KEYS = [
+  "expenses",
+  "exchange-rates",
+  "lenders",
+  "debts",
+] as const;
 type MonthlyExpensesTabKey = (typeof MONTHLY_EXPENSES_TAB_KEYS)[number];
 
 function isMonthlyExpensesTabKey(value: string): value is MonthlyExpensesTabKey {
@@ -27,6 +32,10 @@ function getRedirectDestination(context: GetServerSidePropsContext): string {
 
   if (requestedTab === "lenders") {
     return "/prestadores";
+  }
+
+  if (requestedTab === "exchange-rates") {
+    return "/cotizaciones";
   }
 
   if (requestedTab === "debts") {

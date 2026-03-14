@@ -1,0 +1,65 @@
+.page {
+  min-height: 100vh;
+  padding: 1rem 1.25rem 3rem;
+}
+
+.layout {
+  width: min(88rem, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.mobileSidebarTrigger {
+  margin-right: auto;
+}
+
+.sidebarShell {
+  position: relative;
+}
+
+.sidebarHeader {
+  padding: 1rem 0.75rem 0.5rem;
+}
+
+.sidebarTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--sidebar-foreground) 92%, var(--sidebar-primary) 8%);
+}
+
+.sidebarSubtitle {
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--sidebar-foreground) 58%, var(--sidebar-accent-foreground) 42%);
+}
+
+.sidebarEdgeTriggerDock {
+  position: absolute;
+  right: -0.85rem;
+  top: 0.75rem;
+  z-index: 30;
+  display: none;
+}
+
+.sidebarEdgeTrigger {
+  border: 1px solid color-mix(in srgb, var(--sidebar-border) 78%, transparent 22%);
+  background: var(--sidebar);
+  box-shadow: 0 6px 16px -12px rgba(0, 0, 0, 0.55);
+}
+
+@media (min-width: 768px) {
+  .mobileSidebarTrigger {
+    display: none;
+  }
+
+  .sidebarEdgeTriggerDock {
+    display: block;
+  }
+}
