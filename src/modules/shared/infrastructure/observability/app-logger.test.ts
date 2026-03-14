@@ -48,6 +48,7 @@ describe("appLogger", () => {
   it("extracts request metadata from incoming requests", () => {
     const request = {
       headers: {
+        "x-correlation-id": "correlation-id-abc",
         "x-request-id": "request-id-123",
       },
       method: "POST",
@@ -55,9 +56,24 @@ describe("appLogger", () => {
     } as unknown as NextApiRequest;
 
     expect(createRequestLogContext(request)).toEqual({
+      correlationId: "correlation-id-abc",
       requestId: "request-id-123",
       requestMethod: "POST",
       requestPath: "/api/storage/monthly-expenses?month=2026-03",
     });
+  });
+
+  it("generates and reuses a stable correlation id for the same request object", () => {
+    const request = {
+      headers: {},
+      method: "GET",
+      url: "/api/storage/monthly-expenses-report",
+    } as unknown as NextApiRequest;
+
+    const firstContext = createRequestLogContext(request);
+    const secondContext = createRequestLogContext(request);
+
+    expect(firstContext.correlationId).toEqual(expect.any(String));
+    expect(secondContext.correlationId).toBe(firstContext.correlationId);
   });
 });

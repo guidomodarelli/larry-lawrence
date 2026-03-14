@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 
 const MAX_SANITIZE_DEPTH = 5;
@@ -15,6 +16,56 @@ export interface AppLogOptions {
 }
 
 type RequestForLogging = Pick<IncomingMessage, "headers" | "method" | "url">;
+const correlationIdsByRequest = new WeakMap<object, string>();
+
+function getSingleHeaderValue(value?: string | string[]) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+}
+
+function getExistingCorrelationId(request?: RequestForLogging) {
+  const correlationIdHeader = getSingleHeaderValue(
+    request?.headers?.["x-correlation-id"],
+  );
+
+  if (correlationIdHeader) {
+    return correlationIdHeader;
+  }
+
+  const requestIdHeader = getSingleHeaderValue(request?.headers?.["x-request-id"]);
+
+  if (requestIdHeader) {
+    return requestIdHeader;
+  }
+
+  return getSingleHeaderValue(request?.headers?.["x-vercel-id"]);
+}
+
+function getOrCreateCorrelationId(request?: RequestForLogging) {
+  const existingCorrelationId = getExistingCorrelationId(request);
+
+  if (existingCorrelationId) {
+    return existingCorrelationId;
+  }
+
+  if (!request) {
+    return undefined;
+  }
+
+  const cachedCorrelationId = correlationIdsByRequest.get(request);
+
+  if (cachedCorrelationId) {
+    return cachedCorrelationId;
+  }
+
+  const newCorrelationId = randomUUID();
+  correlationIdsByRequest.set(request, newCorrelationId);
+
+  return newCorrelationId;
+}
 
 function sanitizeString(value: string) {
   const withoutBearer = value.replace(
@@ -168,15 +219,13 @@ function emit(level: LogLevel, message: string, options?: AppLogOptions) {
 }
 
 export function createRequestLogContext(request?: RequestForLogging) {
-  const requestIdHeader = request?.headers?.["x-request-id"];
-  const vercelRequestIdHeader = request?.headers?.["x-vercel-id"];
   const requestId =
-    (Array.isArray(requestIdHeader) ? requestIdHeader[0] : requestIdHeader) ??
-    (Array.isArray(vercelRequestIdHeader)
-      ? vercelRequestIdHeader[0]
-      : vercelRequestIdHeader);
+    getSingleHeaderValue(request?.headers?.["x-request-id"]) ??
+    getSingleHeaderValue(request?.headers?.["x-vercel-id"]);
+  const correlationId = getOrCreateCorrelationId(request);
 
   return cleanUndefinedValues({
+    correlationId,
     requestId,
     requestMethod: request?.method,
     requestPath: request?.url,
