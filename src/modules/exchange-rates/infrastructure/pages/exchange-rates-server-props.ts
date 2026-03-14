@@ -24,11 +24,42 @@ import type { StorageBootstrapResult } from "@/modules/storage/application/resul
 
 import type { ExchangeRatesPageResult } from "../../application/results/exchange-rates-page-result";
 import {
-  DEFAULT_IIBB_RATE_DECIMAL,
   getExchangeRatesPageResult,
 } from "../../application/use-cases/get-exchange-rates-page-result";
+import { DEFAULT_IIBB_RATE_DECIMAL } from "../../application/use-cases/get-monthly-exchange-rate-snapshot";
+import { DrizzleMonthlyExpensesRepository } from "@/modules/monthly-expenses/infrastructure/turso/repositories/drizzle-monthly-expenses-repository";
 import { AmbitoExchangeRatesRepository } from "../api/ambito-exchange-rates-repository";
 import { DrizzleGlobalExchangeRateSettingsRepository } from "../turso/repositories/drizzle-global-exchange-rate-settings-repository";
+import { DrizzleMonthlyExchangeRateSnapshotsRepository } from "../turso/repositories/drizzle-monthly-exchange-rate-snapshots-repository";
+
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+function getCurrentMonthIdentifier(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
+}
+
+function isFutureMonth(month: string, currentMonth: string): boolean {
+  return month > currentMonth;
+}
+
+function getRequestedMonth(
+  queryValue: GetServerSidePropsContext["query"]["month"],
+  currentMonth: string,
+): string {
+  const monthValue = Array.isArray(queryValue) ? queryValue[0] : queryValue;
+  const normalizedMonth = monthValue?.trim();
+
+  if (!normalizedMonth || !MONTH_PATTERN.test(normalizedMonth)) {
+    return currentMonth;
+  }
+
+  return isFutureMonth(normalizedMonth, currentMonth)
+    ? currentMonth
+    : normalizedMonth;
+}
 
 export interface ExchangeRatesRoutePageProps {
   bootstrap: StorageBootstrapResult;
@@ -39,13 +70,19 @@ export interface ExchangeRatesRoutePageProps {
 function createFallbackExchangeRatesPageResult(
   canEditIibb: boolean,
   loadError: string,
+  maxSelectableMonth: string,
+  minSelectableMonth: string,
+  selectedMonth: string,
 ): ExchangeRatesPageResult {
   return {
     blueRate: 0,
     canEditIibb,
     iibbRateDecimal: DEFAULT_IIBB_RATE_DECIMAL,
     loadError,
+    maxSelectableMonth,
+    minSelectableMonth,
     officialRate: 0,
+    selectedMonth,
     solidarityRate: 0,
   };
 }
@@ -63,6 +100,8 @@ async function getCanEditIibb(context: GetServerSidePropsContext): Promise<boole
 export async function getExchangeRatesServerSideProps(
   context: GetServerSidePropsContext,
 ): Promise<{ props: ExchangeRatesRoutePageProps }> {
+  const currentMonth = getCurrentMonthIdentifier();
+  const selectedMonth = getRequestedMonth(context.query.month, currentMonth);
   const requestContext = createRequestLogContext(context.req);
   const initialSidebarOpen = getRequestedSidebarOpen(
     context.req.cookies?.[SIDEBAR_STATE_COOKIE_NAME],
@@ -79,6 +118,18 @@ export async function getExchangeRatesServerSideProps(
       database,
     );
     const exchangeRatesRepository = new AmbitoExchangeRatesRepository();
+    const monthlyExchangeRateSnapshotsRepository =
+      new DrizzleMonthlyExchangeRateSnapshotsRepository(database);
+    const { getAuthenticatedUserSubjectFromRequest } = await import(
+      "@/modules/auth/infrastructure/next-auth/authenticated-user-subject"
+    );
+    const userSubject = await getAuthenticatedUserSubjectFromRequest(context.req);
+    const oldestStoredMonth =
+      await new DrizzleMonthlyExpensesRepository(
+        database,
+        userSubject,
+      ).getOldestStoredMonth();
+    const minSelectableMonth = oldestStoredMonth ?? currentMonth;
 
     return {
       props: {
@@ -87,6 +138,10 @@ export async function getExchangeRatesServerSideProps(
         result: await getExchangeRatesPageResult({
           canEditIibb,
           exchangeRatesRepository,
+          maxSelectableMonth: currentMonth,
+          minSelectableMonth,
+          month: selectedMonth,
+          monthlyExchangeRateSnapshotsRepository,
           settingsRepository,
         }),
       },
@@ -107,6 +162,9 @@ export async function getExchangeRatesServerSideProps(
         result: createFallbackExchangeRatesPageResult(
           canEditIibb,
           "No pudimos cargar las cotizaciones del dólar en este momento.",
+          currentMonth,
+          currentMonth,
+          selectedMonth,
         ),
       },
     };

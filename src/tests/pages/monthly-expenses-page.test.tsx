@@ -2349,4 +2349,76 @@ describe("MonthlyExpensesPage", () => {
       ),
     ).not.toBeInTheDocument();
   });
+
+  it("renders ARS and USD converted columns using the monthly snapshot", () => {
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          exchangeRateLoadError: null,
+          exchangeRateSnapshot: {
+            blueRate: 1290,
+            month: "2026-03",
+            officialRate: 1200,
+            solidarityRate: 1476,
+          },
+          items: [
+            {
+              currency: "ARS",
+              description: "Internet",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              subtotal: 14760,
+              total: 14760,
+            },
+            {
+              currency: "USD",
+              description: "Hosting",
+              id: "expense-2",
+              occurrencesPerMonth: 1,
+              subtotal: 10,
+              total: 10,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("columnheader", { name: "ARS" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "USD" })).toBeInTheDocument();
+    expect(screen.getAllByText("$ 14.760").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("US$ 10").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("shows fallback values when the monthly snapshot could not be loaded", () => {
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          exchangeRateLoadError:
+            "No pudimos cargar la cotización histórica del mes seleccionado.",
+          exchangeRateSnapshot: null,
+          items: [
+            {
+              currency: "ARS",
+              description: "Internet",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              subtotal: 14760,
+              total: 14760,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "No pudimos cargar la cotización histórica del mes seleccionado.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("-")).not.toHaveLength(0);
+  });
 });

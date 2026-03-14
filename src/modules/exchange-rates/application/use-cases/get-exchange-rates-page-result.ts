@@ -1,41 +1,43 @@
 import type { ExchangeRatesRepository } from "../../domain/repositories/exchange-rates-repository";
 import type { GlobalExchangeRateSettingsRepository } from "../../domain/repositories/global-exchange-rate-settings-repository";
+import type { MonthlyExchangeRateSnapshotsRepository } from "../../domain/repositories/monthly-exchange-rate-snapshots-repository";
 
 import type { ExchangeRatesPageResult } from "../results/exchange-rates-page-result";
-
-export const DEFAULT_IIBB_RATE_DECIMAL = 0.02;
-export const SOLIDARITY_RATE_IVA_DECIMAL = 0.21;
-
-export function calculateSolidarityRate(
-  officialRate: number,
-  iibbRateDecimal: number,
-): number {
-  return officialRate * (1 + iibbRateDecimal + SOLIDARITY_RATE_IVA_DECIMAL);
-}
+import { getMonthlyExchangeRateSnapshot } from "./get-monthly-exchange-rate-snapshot";
 
 export async function getExchangeRatesPageResult({
   canEditIibb,
   exchangeRatesRepository,
+  maxSelectableMonth,
+  minSelectableMonth,
+  month,
+  monthlyExchangeRateSnapshotsRepository,
   settingsRepository,
 }: {
   canEditIibb: boolean;
   exchangeRatesRepository: ExchangeRatesRepository;
+  maxSelectableMonth: string;
+  minSelectableMonth: string;
+  month: string;
+  monthlyExchangeRateSnapshotsRepository: MonthlyExchangeRateSnapshotsRepository;
   settingsRepository: GlobalExchangeRateSettingsRepository;
 }): Promise<ExchangeRatesPageResult> {
-  const [officialRate, blueRate, persistedSettings] = await Promise.all([
-    exchangeRatesRepository.getRate("official"),
-    exchangeRatesRepository.getRate("blue"),
-    settingsRepository.get(),
-  ]);
-  const iibbRateDecimal =
-    persistedSettings?.iibbRateDecimal ?? DEFAULT_IIBB_RATE_DECIMAL;
+  const snapshot = await getMonthlyExchangeRateSnapshot({
+    exchangeRatesRepository,
+    month,
+    monthlyExchangeRateSnapshotsRepository,
+    settingsRepository,
+  });
 
   return {
-    blueRate,
+    blueRate: snapshot.blueRate,
     canEditIibb,
-    iibbRateDecimal,
+    iibbRateDecimal: snapshot.iibbRateDecimalUsed,
     loadError: null,
-    officialRate,
-    solidarityRate: calculateSolidarityRate(officialRate, iibbRateDecimal),
+    maxSelectableMonth,
+    minSelectableMonth,
+    officialRate: snapshot.officialRate,
+    selectedMonth: snapshot.month,
+    solidarityRate: snapshot.solidarityRate,
   };
 }

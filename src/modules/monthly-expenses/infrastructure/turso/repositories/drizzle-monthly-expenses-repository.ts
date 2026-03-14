@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import {
   monthlyExpensesDocumentsTable,
@@ -45,6 +45,19 @@ export class DrizzleMonthlyExpensesRepository
       row.payloadJson,
       "Loading monthly expenses from database",
     );
+  }
+
+  async getOldestStoredMonth(): Promise<string | null> {
+    const rows = await this.database
+      .select({
+        month: monthlyExpensesDocumentsTable.month,
+      })
+      .from(monthlyExpensesDocumentsTable)
+      .where(eq(monthlyExpensesDocumentsTable.userSubject, this.userSubject))
+      .orderBy(asc(monthlyExpensesDocumentsTable.month))
+      .limit(1);
+
+    return rows[0]?.month ?? null;
   }
 
   async save(

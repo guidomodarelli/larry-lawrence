@@ -2,6 +2,7 @@ import type { GetServerSidePropsContext } from "next";
 
 import { isGoogleOAuthConfigured } from "@/modules/auth/infrastructure/oauth/google-oauth-config";
 import { GOOGLE_OAUTH_SCOPES } from "@/modules/auth/infrastructure/oauth/google-oauth-scopes";
+import { createGetMonthlyExchangeRateSnapshot } from "@/modules/exchange-rates/infrastructure/create-get-monthly-exchange-rate-snapshot";
 import {
   createEmptyLendersCatalogDocumentResult,
 } from "@/modules/lenders/application/results/lenders-catalog-document-result";
@@ -124,6 +125,7 @@ export async function getMonthlyExpensesServerSidePropsForTab(
       database,
       userSubject,
     );
+    const getExchangeRateSnapshot = createGetMonthlyExchangeRateSnapshot(database);
     const lendersRepository = new DrizzleLendersRepository(
       database,
       userSubject,
@@ -132,6 +134,7 @@ export async function getMonthlyExpensesServerSidePropsForTab(
     const [documentResult, lendersResult, reportResult, copyableMonthsResult] =
       await Promise.allSettled([
         getMonthlyExpensesDocument({
+          getExchangeRateSnapshot,
           query: {
             month: selectedMonth,
           },

@@ -31,12 +31,24 @@ export interface MonthlyExpenseItem extends MonthlyExpenseItemInput {
   total: number;
 }
 
+export interface MonthlyExpensesExchangeRateSnapshotInput {
+  blueRate: number;
+  month: string;
+  officialRate: number;
+  solidarityRate: number;
+}
+
+export type MonthlyExpensesExchangeRateSnapshot =
+  MonthlyExpensesExchangeRateSnapshotInput;
+
 export interface MonthlyExpensesDocumentInput {
+  exchangeRateSnapshot?: MonthlyExpensesExchangeRateSnapshotInput;
   items: MonthlyExpenseItemInput[];
   month: string;
 }
 
 export interface MonthlyExpensesDocument {
+  exchangeRateSnapshot?: MonthlyExpensesExchangeRateSnapshot | null;
   items: MonthlyExpenseItem[];
   month: string;
 }
@@ -234,6 +246,43 @@ function validateItem(
   };
 }
 
+function validateExchangeRateSnapshot(
+  exchangeRateSnapshot: MonthlyExpensesExchangeRateSnapshotInput,
+  operationName: string,
+  targetMonth: string,
+): MonthlyExpensesExchangeRateSnapshot {
+  const month = validateMonth(
+    exchangeRateSnapshot.month,
+    operationName,
+    "an exchange rate snapshot month",
+  );
+
+  if (month !== targetMonth) {
+    throw new Error(
+      `${operationName} requires the exchange rate snapshot month to match the document month.`,
+    );
+  }
+
+  const numericRates = [
+    exchangeRateSnapshot.officialRate,
+    exchangeRateSnapshot.blueRate,
+    exchangeRateSnapshot.solidarityRate,
+  ];
+
+  if (numericRates.some((rate) => !Number.isFinite(rate) || rate <= 0)) {
+    throw new Error(
+      `${operationName} requires exchange rate snapshot values greater than 0.`,
+    );
+  }
+
+  return {
+    blueRate: exchangeRateSnapshot.blueRate,
+    month,
+    officialRate: exchangeRateSnapshot.officialRate,
+    solidarityRate: exchangeRateSnapshot.solidarityRate,
+  };
+}
+
 export function createMonthlyExpensesDocument(
   payload: MonthlyExpensesDocumentInput,
   operationName: string,
@@ -241,6 +290,15 @@ export function createMonthlyExpensesDocument(
   const month = validateMonth(payload.month, operationName);
 
   return {
+    ...(payload.exchangeRateSnapshot
+      ? {
+          exchangeRateSnapshot: validateExchangeRateSnapshot(
+            payload.exchangeRateSnapshot,
+            operationName,
+            month,
+          ),
+        }
+      : {}),
     items: payload.items.map((item) => validateItem(item, operationName, month)),
     month,
   };
@@ -256,4 +314,41 @@ export function createEmptyMonthlyExpensesDocument(
     },
     "Creating an empty monthly expenses document",
   );
+}
+
+export function toMonthlyExpensesDocumentInput(
+  document: MonthlyExpensesDocument,
+): MonthlyExpensesDocumentInput {
+  return {
+    ...(document.exchangeRateSnapshot
+      ? {
+          exchangeRateSnapshot: {
+            blueRate: document.exchangeRateSnapshot.blueRate,
+            month: document.exchangeRateSnapshot.month,
+            officialRate: document.exchangeRateSnapshot.officialRate,
+            solidarityRate: document.exchangeRateSnapshot.solidarityRate,
+          },
+        }
+      : {}),
+    items: document.items.map((item) => ({
+      currency: item.currency,
+      description: item.description,
+      id: item.id,
+      ...(item.loan
+        ? {
+            loan: {
+              installmentCount: item.loan.installmentCount,
+              ...(item.loan.lenderId ? { lenderId: item.loan.lenderId } : {}),
+              ...(item.loan.lenderName
+                ? { lenderName: item.loan.lenderName }
+                : {}),
+              startMonth: item.loan.startMonth,
+            },
+          }
+        : {}),
+      occurrencesPerMonth: item.occurrencesPerMonth,
+      subtotal: item.subtotal,
+    })),
+    month: document.month,
+  };
 }

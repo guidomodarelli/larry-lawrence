@@ -2,7 +2,7 @@ import type { MonthlyExpensesRepository } from "../../domain/repositories/monthl
 import { saveMonthlyExpensesDocument } from "./save-monthly-expenses-document";
 
 describe("saveMonthlyExpensesDocument", () => {
-  it("delegates a validated monthly document to the repository", async () => {
+  it("delegates a validated monthly document with the snapshot to the repository", async () => {
     const repository: MonthlyExpensesRepository = {
       getByMonth: jest.fn(),
       listAll: jest.fn(),
@@ -27,10 +27,26 @@ describe("saveMonthlyExpensesDocument", () => {
         ],
         month: "2026-03",
       },
+      getExchangeRateSnapshot: jest.fn().mockResolvedValue({
+        blueRate: 1290,
+        iibbRateDecimalUsed: 0.02,
+        month: "2026-03",
+        officialRate: 1200,
+        solidarityRate: 1476,
+        source: "ambito-historico-general",
+        sourceDateIso: "2026-03-31",
+        updatedAtIso: "2026-03-14T12:00:00.000Z",
+      }),
       repository,
     });
 
     expect(repository.save).toHaveBeenCalledWith({
+      exchangeRateSnapshot: {
+        blueRate: 1290,
+        month: "2026-03",
+        officialRate: 1200,
+        solidarityRate: 1476,
+      },
       items: [
         {
           currency: "ARS",

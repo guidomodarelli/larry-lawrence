@@ -1,19 +1,23 @@
 import { AmbitoExchangeRatesRepository } from "./ambito-exchange-rates-repository";
 
 describe("AmbitoExchangeRatesRepository", () => {
-  it("sends browser-like headers for Ambito exchange rate requests", async () => {
+  it("sends browser-like headers for Ambito historical exchange rate requests", async () => {
     const fetchImplementation = jest.fn().mockResolvedValue({
-      json: async () => ({
-        venta: "1.234,56",
-      }),
+      json: async () => [
+        ["Fecha", "Compra", "Venta"],
+        ["31/03/2026", "1.200,00", "1.234,56"],
+      ],
       ok: true,
     });
     const repository = new AmbitoExchangeRatesRepository(fetchImplementation);
 
-    await repository.getRate("blue");
+    await repository.getMonthlyRate({
+      month: "2026-03",
+      variant: "blue",
+    });
 
     expect(fetchImplementation).toHaveBeenCalledWith(
-      "https://mercados.ambito.com/dolar/informal/variacion",
+      "https://mercados.ambito.com/dolar/informal/historico-general/2026-03-01/2026-03-31",
       expect.objectContaining({
         headers: expect.objectContaining({
           Accept: expect.stringContaining("text/html"),
@@ -34,8 +38,13 @@ describe("AmbitoExchangeRatesRepository", () => {
       }),
     );
 
-    await expect(repository.getRate("official")).rejects.toThrow(
-      "ambito-exchange-rates-repository:getRate received 403 for official.",
+    await expect(
+      repository.getMonthlyRate({
+        month: "2026-03",
+        variant: "official",
+      }),
+    ).rejects.toThrow(
+      "ambito-exchange-rates-repository:getMonthlyRate received 403 for official in 2026-03.",
     );
   });
 });

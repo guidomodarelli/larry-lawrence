@@ -1,5 +1,15 @@
 export type ExchangeRateVariant = "official" | "blue";
 
+export interface MonthlyExchangeRateValue {
+  month: string;
+  rate: number;
+  sourceDateIso: string;
+  variant: ExchangeRateVariant;
+}
+
 export interface ExchangeRatesRepository {
-  getRate(variant: ExchangeRateVariant): Promise<number>;
+  getMonthlyRate(query: {
+    month: string;
+    variant: ExchangeRateVariant;
+  }): Promise<MonthlyExchangeRateValue>;
 }

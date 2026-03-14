@@ -24,6 +24,14 @@ const googleDriveMonthlyExpenseItemSchema = z.object({
 });
 
 const googleDriveMonthlyExpensesDocumentSchema = z.object({
+  exchangeRateSnapshot: z
+    .object({
+      blueRate: z.number().positive(),
+      month: z.string().trim().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+      officialRate: z.number().positive(),
+      solidarityRate: z.number().positive(),
+    })
+    .optional(),
   items: z.array(googleDriveMonthlyExpenseItemSchema),
   month: z.string().trim().min(1),
 });
@@ -68,6 +76,16 @@ export function mapMonthlyExpensesDocumentToGoogleDriveFile(
   return {
     content: JSON.stringify(
       {
+        ...(document.exchangeRateSnapshot
+          ? {
+              exchangeRateSnapshot: {
+                blueRate: document.exchangeRateSnapshot.blueRate,
+                month: document.exchangeRateSnapshot.month,
+                officialRate: document.exchangeRateSnapshot.officialRate,
+                solidarityRate: document.exchangeRateSnapshot.solidarityRate,
+              },
+            }
+          : {}),
         items: document.items.map(
           ({ currency, description, id, loan, occurrencesPerMonth, subtotal }) => ({
             currency,

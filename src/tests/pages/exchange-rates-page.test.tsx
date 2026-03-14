@@ -1,5 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRouter } from "next/router";
 import { signIn, signOut, useSession } from "next-auth/react";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
@@ -7,6 +8,10 @@ import { toast } from "sonner";
 import ExchangeRatesPage from "@/modules/exchange-rates/shared/pages/exchange-rates-page";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { StorageBootstrapResult } from "@/modules/storage/application/results/storage-bootstrap";
+
+jest.mock("next/router", () => ({
+  useRouter: jest.fn(),
+}));
 
 jest.mock("next-auth/react", () => ({
   signIn: jest.fn(),
@@ -36,6 +41,7 @@ type MockedToast = jest.Mock & {
   warning: jest.Mock;
 };
 
+const mockedUseRouter = jest.mocked(useRouter);
 const mockedUseSession = jest.mocked(useSession);
 const mockedSignIn = jest.mocked(signIn);
 const mockedSignOut = jest.mocked(signOut);
@@ -75,7 +81,10 @@ const basePageProps = {
     canEditIibb: true,
     iibbRateDecimal: 0.02,
     loadError: null,
+    maxSelectableMonth: "2026-03",
+    minSelectableMonth: "2026-01",
     officialRate: 1200,
+    selectedMonth: "2026-03",
     solidarityRate: 1476,
   },
 };
@@ -90,6 +99,11 @@ describe("ExchangeRatesPage", () => {
     mockedToast.promise.mockReset();
     mockedToast.success.mockReset();
     mockedToast.warning.mockReset();
+    mockedUseRouter.mockReturnValue({
+      pathname: "/cotizaciones",
+      query: {},
+      replace: jest.fn().mockResolvedValue(true),
+    } as unknown as ReturnType<typeof useRouter>);
     mockedUseSession.mockReturnValue({
       data: {
         expires: "2026-03-14T12:00:00.000Z",
@@ -112,10 +126,13 @@ describe("ExchangeRatesPage", () => {
   it("renders the three exchange rate values and the new sidebar link order", () => {
     renderWithProviders(<ExchangeRatesPage {...basePageProps} />);
 
-    expect(screen.getByRole("heading", { name: "Cotizaciones del dólar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Cotizaciones del dólar" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/\$.*1\.200,00/)).toBeInTheDocument();
     expect(screen.getByText(/\$.*1\.290,00/)).toBeInTheDocument();
     expect(screen.getByText(/\$.*1\.476,00/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Mes y año")).toHaveValue("2026-03");
 
     const sidebarLinks = screen.getAllByRole("link");
     const sidebarLabels = sidebarLinks.map((link) => link.textContent?.trim());
@@ -158,6 +175,38 @@ describe("ExchangeRatesPage", () => {
     );
   });
 
+  it("navigates with the selected month in the query string", async () => {
+    const replace = jest.fn().mockResolvedValue(true);
+    mockedUseRouter.mockReturnValue({
+      pathname: "/cotizaciones",
+      query: {},
+      replace,
+    } as unknown as ReturnType<typeof useRouter>);
+
+    renderWithProviders(<ExchangeRatesPage {...basePageProps} />);
+
+    fireEvent.change(screen.getByLabelText("Mes y año"), {
+      target: {
+        value: "2026-02",
+      },
+    });
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith(
+        {
+          pathname: "/cotizaciones",
+          query: {
+            month: "2026-02",
+          },
+        },
+        undefined,
+        {
+          scroll: false,
+        },
+      );
+    });
+  });
+
   it("renders the IIBB setting as read-only for non-admin users", () => {
     renderWithProviders(
       <ExchangeRatesPage
@@ -169,8 +218,14 @@ describe("ExchangeRatesPage", () => {
       />,
     );
 
-    expect(screen.queryByLabelText("IIBB en formato decimal")).not.toBeInTheDocument();
-    expect(screen.getByText("Solo los admins configurados en la allowlist pueden editar este valor global.")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("IIBB en formato decimal"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Solo los admins configurados en la allowlist pueden editar este valor global.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("renders a controlled error state when the rates could not be loaded", () => {

@@ -48,3 +48,14 @@ export const globalExchangeRateSettingsTable = sqliteTable(
     updatedAtIso: text("updated_at_iso").notNull(),
   },
 );
+
+export const monthlyExchangeRatesTable = sqliteTable("monthly_exchange_rates", {
+  blueRate: real("blue_rate").notNull(),
+  iibbRateDecimalUsed: real("iibb_rate_decimal_used").notNull(),
+  month: text("month").primaryKey(),
+  officialRate: real("official_rate").notNull(),
+  solidarityRate: real("solidarity_rate").notNull(),
+  source: text("source").notNull(),
+  sourceDateIso: text("source_date_iso").notNull(),
+  updatedAtIso: text("updated_at_iso").notNull(),
+});

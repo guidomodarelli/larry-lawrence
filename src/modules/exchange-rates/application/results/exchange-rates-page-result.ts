@@ -3,6 +3,9 @@ export interface ExchangeRatesPageResult {
   canEditIibb: boolean;
   iibbRateDecimal: number;
   loadError: string | null;
+  maxSelectableMonth: string;
+  minSelectableMonth: string;
   officialRate: number;
+  selectedMonth: string;
   solidarityRate: number;
 }

@@ -41,6 +41,17 @@ describe("HomePage redirect", () => {
     );
   });
 
+  it("preserves month when redirecting legacy tab=exchange-rates", async () => {
+    const result = await getServerSideProps(createContext({
+      month: "2026-03",
+      tab: "exchange-rates",
+    }));
+
+    expect("redirect" in result && result.redirect?.destination).toBe(
+      "/cotizaciones?month=2026-03",
+    );
+  });
+
   it("preserves month when redirecting to /gastos", async () => {
     const result = await getServerSideProps(createContext({
       month: "2026-04",

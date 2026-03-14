@@ -29,23 +29,24 @@ export default function HomePageRedirect() {
 
 function getRedirectDestination(context: GetServerSidePropsContext): string {
   const requestedTab = getRequestedMonthlyExpensesTab(context.query.tab);
+  const monthQuery = Array.isArray(context.query.month)
+    ? context.query.month[0]
+    : context.query.month;
+  const normalizedMonth = monthQuery?.trim();
 
   if (requestedTab === "lenders") {
     return "/prestadores";
   }
 
   if (requestedTab === "exchange-rates") {
-    return "/cotizaciones";
+    return normalizedMonth
+      ? `/cotizaciones?month=${encodeURIComponent(normalizedMonth)}`
+      : "/cotizaciones";
   }
 
   if (requestedTab === "debts") {
     return "/reportes/deudas";
   }
-
-  const monthQuery = Array.isArray(context.query.month)
-    ? context.query.month[0]
-    : context.query.month;
-  const normalizedMonth = monthQuery?.trim();
 
   return normalizedMonth ? `/gastos?month=${encodeURIComponent(normalizedMonth)}` : "/gastos";
 }

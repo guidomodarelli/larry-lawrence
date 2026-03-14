@@ -50,6 +50,12 @@ interface MonthlyExpensesTableProps {
     value: string;
   }>;
   draft: MonthlyExpensesEditableRow | null;
+  exchangeRateSnapshot: {
+    blueRate: number;
+    month: string;
+    officialRate: number;
+    solidarityRate: number;
+  } | null;
   feedbackMessage: string;
   feedbackTone: "default" | "error" | "success";
   isCopyFromDisabled: boolean;
@@ -135,12 +141,24 @@ function formatCurrencyAmount(
   }).format(numericValue)}`;
 }
 
+function formatConvertedAmount(
+  currency: MonthlyExpenseCurrency,
+  value: number | null,
+): string {
+  if (value == null) {
+    return "-";
+  }
+
+  return formatCurrencyAmount(currency, value.toFixed(2));
+}
+
 export function MonthlyExpensesTable({
   actionDisabled,
   changedFields,
   copySourceMonth,
   copySourceMonthOptions,
   draft,
+  exchangeRateSnapshot,
   feedbackMessage,
   feedbackTone,
   isCopyFromDisabled,
@@ -201,6 +219,44 @@ export function MonthlyExpensesTable({
           Number(rowA.original.total) - Number(rowB.original.total),
       },
       {
+        accessorKey: "ars",
+        cell: ({ row }) => {
+          const total = Number(row.original.total);
+
+          if (!exchangeRateSnapshot || !Number.isFinite(total)) {
+            return "-";
+          }
+
+          const arsAmount =
+            row.original.currency === "ARS"
+              ? total
+              : total * exchangeRateSnapshot.solidarityRate;
+
+          return formatConvertedAmount("ARS", arsAmount);
+        },
+        enableSorting: false,
+        header: "ARS",
+      },
+      {
+        accessorKey: "usd",
+        cell: ({ row }) => {
+          const total = Number(row.original.total);
+
+          if (!exchangeRateSnapshot || !Number.isFinite(total)) {
+            return "-";
+          }
+
+          const usdAmount =
+            row.original.currency === "USD"
+              ? total
+              : total / exchangeRateSnapshot.solidarityRate;
+
+          return formatConvertedAmount("USD", usdAmount);
+        },
+        enableSorting: false,
+        header: "USD",
+      },
+      {
         accessorKey: "loanProgress",
         cell: ({ row }) =>
           row.original.isLoan
@@ -222,7 +278,7 @@ export function MonthlyExpensesTable({
         id: "actions",
       },
     ],
-    [actionDisabled, onDeleteExpense, onEditExpense],
+    [actionDisabled, exchangeRateSnapshot, onDeleteExpense, onEditExpense],
   );
 
   return (

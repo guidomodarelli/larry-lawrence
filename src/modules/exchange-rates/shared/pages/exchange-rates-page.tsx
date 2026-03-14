@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 
 import { FinanceAppShell } from "@/components/finance-app-shell/finance-app-shell";
@@ -11,7 +12,7 @@ import {
   type ExchangeRatesRoutePageProps,
 } from "@/modules/exchange-rates/infrastructure/pages/exchange-rates-server-props";
 import { saveGlobalExchangeRateSettingsViaApi } from "@/modules/exchange-rates/infrastructure/api/exchange-rates-settings-api";
-import { calculateSolidarityRate } from "@/modules/exchange-rates/application/use-cases/get-exchange-rates-page-result";
+import { calculateSolidarityRate } from "@/modules/exchange-rates/application/use-cases/get-monthly-exchange-rate-snapshot";
 
 import styles from "./exchange-rates-page.module.scss";
 
@@ -53,6 +54,7 @@ export default function ExchangeRatesPage({
   initialSidebarOpen = true,
   result,
 }: ExchangeRatesRoutePageProps) {
+  const router = useRouter();
   const [currentResult, setCurrentResult] = useState(result);
   const [iibbInputValue, setIibbInputValue] = useState(
     String(result.iibbRateDecimal),
@@ -63,6 +65,37 @@ export default function ExchangeRatesPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isRatesAvailable = !currentResult.loadError;
   const isOAuthConfigured = bootstrap.authStatus === "configured";
+
+  useEffect(() => {
+    setCurrentResult(result);
+    setIibbInputValue(String(result.iibbRateDecimal));
+    setFeedbackMessage(result.loadError);
+  }, [result]);
+
+  const handleMonthChange = (selectedMonth: string) => {
+    const normalizedMonth = selectedMonth.trim();
+
+    if (
+      !normalizedMonth ||
+      normalizedMonth === currentResult.selectedMonth ||
+      normalizedMonth > currentResult.maxSelectableMonth
+    ) {
+      return;
+    }
+
+    void router.replace(
+      {
+        pathname: "/cotizaciones",
+        query: {
+          month: normalizedMonth,
+        },
+      },
+      undefined,
+      {
+        scroll: false,
+      },
+    );
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -128,10 +161,33 @@ export default function ExchangeRatesPage({
           <p className={styles.eyebrow}>Mercado cambiario</p>
           <h1 className={styles.title}>Cotizaciones del dólar</h1>
           <p className={styles.description}>
-            Consultá el valor oficial, blue y solidario usando la referencia de
-            Ámbito y la configuración global de IIBB.
+            Consultá el valor oficial, blue y solidario del mes seleccionado
+            usando el histórico de Ámbito y la configuración global de IIBB.
           </p>
         </div>
+
+        <Card className={styles.settingsCard}>
+          <CardHeader>
+            <CardTitle>Mes de consulta</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={styles.settingsField}>
+              <Label htmlFor="exchange-rates-month">Mes y año</Label>
+              <Input
+                id="exchange-rates-month"
+                max={currentResult.maxSelectableMonth}
+                min={currentResult.minSelectableMonth}
+                onChange={(event) => handleMonthChange(event.target.value)}
+                type="month"
+                value={currentResult.selectedMonth}
+              />
+              <p className={styles.helperText}>
+                Podés consultar desde {currentResult.minSelectableMonth} hasta{" "}
+                {currentResult.maxSelectableMonth}.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {feedbackMessage ? (
           <Card>

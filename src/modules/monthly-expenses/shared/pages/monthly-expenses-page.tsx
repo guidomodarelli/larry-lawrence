@@ -64,6 +64,11 @@ export type MonthlyExpensesPageProps = {
 
 interface MonthlyExpensesFormState {
   error: string | null;
+  exchangeRateLoadError: string | null;
+  exchangeRateSnapshot: Exclude<
+    MonthlyExpensesDocumentResult["exchangeRateSnapshot"],
+    undefined
+  >;
   isSubmitting: boolean;
   month: string;
   rows: MonthlyExpensesEditableRow[];
@@ -190,6 +195,8 @@ function createMonthlyExpensesFormState(
 ): MonthlyExpensesFormState {
   return {
     error: null,
+    exchangeRateLoadError: document.exchangeRateLoadError ?? null,
+    exchangeRateSnapshot: document.exchangeRateSnapshot ?? null,
     isSubmitting: false,
     month: document.month,
     rows: toEditableRows(document),
@@ -1143,13 +1150,14 @@ export default function MonthlyExpensesPage({
                 copySourceMonth={copySourceMonth}
                 copySourceMonthOptions={copySourceMonthOptions}
                 draft={expenseSheetState.draft}
+                exchangeRateSnapshot={formState.exchangeRateSnapshot}
                 feedbackMessage={feedbackMessage}
                 feedbackTone={feedbackTone}
                 isCopyFromDisabled={copyFromDisabled}
                 isExpenseSheetOpen={expenseSheetState.isOpen}
                 isSubmitting={formState.isSubmitting}
                 lenders={lendersState.lenders}
-                loadError={loadError}
+                loadError={loadError ?? formState.exchangeRateLoadError}
                 month={formState.month}
                 onAddExpense={handleAddExpense}
                 onCopyFromMonth={handleCopyFromMonth}
