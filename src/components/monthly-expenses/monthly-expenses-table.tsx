@@ -619,6 +619,13 @@ function formatCurrencyAmount(
     return value;
   }
 
+  if (currency === "ARS") {
+    return `$ ${new Intl.NumberFormat("es-AR", {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    }).format(numericValue)}`;
+  }
+
   const [, decimalPart = ""] = value.split(".");
   const normalizedDecimalPart = decimalPart.slice(0, 2);
   const minimumFractionDigits =
@@ -639,6 +646,13 @@ function formatConvertedAmount(
 ): string {
   if (value == null) {
     return "-";
+  }
+
+  if (currency === "ARS") {
+    return `$ ${new Intl.NumberFormat("es-AR", {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    }).format(value)}`;
   }
 
   return formatCurrencyAmount(currency, value.toFixed(2));

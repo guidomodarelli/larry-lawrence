@@ -992,7 +992,7 @@ describe("MonthlyExpensesPage", () => {
       />,
     );
 
-    expect(screen.getByText("$ 390")).toBeInTheDocument();
+    expect(screen.getByText("$ 390,00")).toBeInTheDocument();
     expect(screen.getByText("US$ 3,25")).toBeInTheDocument();
   });
 
@@ -3614,7 +3614,7 @@ describe("MonthlyExpensesPage", () => {
     expect(screen.getByText("$ 1.200")).toBeInTheDocument();
     expect(screen.getByText(/^Dólar solidario:/i)).toBeInTheDocument();
     expect(screen.getByText("$ 1.476")).toBeInTheDocument();
-    expect(screen.getAllByText("$ 14.760").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("$ 14.760,00").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("US$ 10").length).toBeGreaterThanOrEqual(2);
   });
 
