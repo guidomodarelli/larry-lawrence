@@ -277,6 +277,51 @@ describe("MonthlyExpensesPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows month help inside a closable popover", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [
+            {
+              currency: "ARS",
+              description: "Agua",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              subtotal: 10774.53,
+              total: 10774.53,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByText("Cambiá el mes para guardar otra planilla mensual."),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Información sobre el campo Mes" }),
+    );
+
+    expect(
+      screen.getByText("Cambiá el mes para guardar otra planilla mensual."),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Cerrar información de Mes" }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Cambiá el mes para guardar otra planilla mensual."),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("shows a column selector and keeps Descripcion always visible", async () => {
     const user = userEvent.setup();
 
