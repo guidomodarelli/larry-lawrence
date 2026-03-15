@@ -222,24 +222,24 @@ describe("monthlyExpensesGoogleDriveMapper", () => {
     expect(parsed.items[0]?.paymentLink).toBe("https://pagos.empresa-energia.com");
   });
 
-  it("sanitizes legacy invalid paymentLink values to null while parsing", () => {
-    const parsed = parseGoogleDriveMonthlyExpensesContent(
-      JSON.stringify({
-        items: [
-          {
-            currency: "ARS",
-            description: "Electricidad",
-            id: "expense-1",
-            occurrencesPerMonth: 1,
-            paymentLink: "asdads",
-            subtotal: 45,
-          },
-        ],
-        month: "2026-03",
-      }),
-      "Loading monthly expenses",
-    );
-
-    expect(parsed.items[0]?.paymentLink).toBeNull();
+  it("throws when parsing an invalid paymentLink", () => {
+    expect(() =>
+      parseGoogleDriveMonthlyExpensesContent(
+        JSON.stringify({
+          items: [
+            {
+              currency: "ARS",
+              description: "Electricidad",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              paymentLink: "asdads",
+              subtotal: 45,
+            },
+          ],
+          month: "2026-03",
+        }),
+        "Loading monthly expenses",
+      ),
+    ).toThrow("Loading monthly expenses could not parse the stored monthly expenses document.");
   });
 });

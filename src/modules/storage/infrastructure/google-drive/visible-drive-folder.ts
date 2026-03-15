@@ -1,9 +1,6 @@
 import type { drive_v3 } from "googleapis";
 
-import {
-  LEGACY_VISIBLE_DRIVE_FOLDER_NAME,
-  VISIBLE_DRIVE_FOLDER_NAME,
-} from "@/modules/storage/shared/visible-drive-folder-name";
+import { VISIBLE_DRIVE_FOLDER_NAME } from "@/modules/storage/shared/visible-drive-folder-name";
 
 import { mapGoogleDriveStorageError } from "./google-drive-storage-error";
 
@@ -23,40 +20,11 @@ export async function findVisibleDriveFolder({
   driveClient: drive_v3.Drive;
   operation: string;
 }) {
-  const canonicalFolder = await findDriveFolderByName({
+  return findDriveFolderByName({
     driveClient,
     folderName: VISIBLE_DRIVE_FOLDER_NAME,
     operation,
   });
-
-  if (canonicalFolder) {
-    return canonicalFolder;
-  }
-
-  const legacyFolder = await findDriveFolderByName({
-    driveClient,
-    folderName: LEGACY_VISIBLE_DRIVE_FOLDER_NAME,
-    operation,
-  });
-
-  if (!legacyFolder?.id) {
-    return null;
-  }
-
-  try {
-    const response = await driveClient.files.update({
-      fields: DRIVE_FOLDER_FIELDS,
-      fileId: legacyFolder.id,
-      requestBody: {
-        name: VISIBLE_DRIVE_FOLDER_NAME,
-      },
-    });
-
-    return response.data;
-  } catch {
-    // If renaming the legacy folder fails, continue using the legacy folder.
-    return legacyFolder;
-  }
 }
 
 async function findDriveFolderByName({

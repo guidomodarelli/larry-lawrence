@@ -3329,7 +3329,7 @@ describe("MonthlyExpensesPage", () => {
     });
   });
 
-  it("builds report lender filter options from catalog lenders and legacy report entries", () => {
+  it("builds report lender filter options from catalog lenders and report entries with lender ids", () => {
     expect(
       getReportProviderFilterOptions(
         [
@@ -3357,10 +3357,6 @@ describe("MonthlyExpensesPage", () => {
       {
         id: "lender-1",
         label: "Papa",
-      },
-      {
-        id: "legacy:Prestador manual",
-        label: "Prestador manual",
       },
     ]);
   });

@@ -633,9 +633,7 @@ function getFilteredLoansReportEntries(
       reportState.typeFilter === "all" || entry.lenderType === reportState.typeFilter;
     const matchesLender =
       reportState.lenderFilter === "all" ||
-      entry.lenderId === reportState.lenderFilter ||
-      (!entry.lenderId &&
-        `legacy:${entry.lenderName}` === reportState.lenderFilter);
+      entry.lenderId === reportState.lenderFilter;
 
     return matchesType && matchesLender;
   });
@@ -652,7 +650,9 @@ export function getReportProviderFilterOptions(
   }
 
   for (const entry of entries) {
-    options.set(entry.lenderId ?? `legacy:${entry.lenderName}`, entry.lenderName);
+    if (entry.lenderId) {
+      options.set(entry.lenderId, entry.lenderName);
+    }
   }
 
   return [...options.entries()]

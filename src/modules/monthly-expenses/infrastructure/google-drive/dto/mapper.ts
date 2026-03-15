@@ -37,111 +37,6 @@ function isValidHttpPaymentLink(value: string): boolean {
   }
 }
 
-function sanitizeLegacyPaymentLink(paymentLink: unknown): unknown {
-  if (typeof paymentLink !== "string") {
-    return paymentLink;
-  }
-
-  const normalizedPaymentLink = paymentLink.trim();
-
-  if (!normalizedPaymentLink) {
-    return null;
-  }
-
-  try {
-    return normalizeHttpPaymentLink(normalizedPaymentLink);
-  } catch {
-    return null;
-  }
-}
-
-function sanitizeLegacyReceipt(receipt: unknown): unknown {
-  if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)) {
-    return null;
-  }
-
-  const receiptRecord = receipt as Record<string, unknown>;
-  const fileId =
-    typeof receiptRecord.fileId === "string" ? receiptRecord.fileId.trim() : "";
-  const fileName =
-    typeof receiptRecord.fileName === "string"
-      ? receiptRecord.fileName.trim()
-      : "";
-  const folderId =
-    typeof receiptRecord.folderId === "string"
-      ? receiptRecord.folderId.trim()
-      : "";
-  const fileViewUrl =
-    typeof receiptRecord.fileViewUrl === "string"
-      ? receiptRecord.fileViewUrl.trim()
-      : "";
-  const folderViewUrl =
-    typeof receiptRecord.folderViewUrl === "string"
-      ? receiptRecord.folderViewUrl.trim()
-      : "";
-
-  if (!fileId || !fileName || !folderId || !fileViewUrl || !folderViewUrl) {
-    return null;
-  }
-
-  try {
-    return {
-      fileId,
-      fileName,
-      fileViewUrl: RECEIPT_VIEW_URL_SCHEMA.parse(fileViewUrl),
-      folderId,
-      folderViewUrl: RECEIPT_VIEW_URL_SCHEMA.parse(folderViewUrl),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function sanitizeLegacyMonthlyExpensesContent(rawContent: unknown): unknown {
-  if (!rawContent || typeof rawContent !== "object" || Array.isArray(rawContent)) {
-    return rawContent;
-  }
-
-  const contentRecord = rawContent as Record<string, unknown>;
-  const rawItems = contentRecord.items;
-
-  if (!Array.isArray(rawItems)) {
-    return rawContent;
-  }
-
-  return {
-    ...contentRecord,
-    items: rawItems.map((item) => {
-      if (!item || typeof item !== "object" || Array.isArray(item)) {
-        return item;
-      }
-
-      const itemRecord = item as Record<string, unknown>;
-
-      if (!Object.hasOwn(itemRecord, "paymentLink")) {
-        if (!Object.hasOwn(itemRecord, "receipt")) {
-          return item;
-        }
-
-        return {
-          ...itemRecord,
-          receipt: sanitizeLegacyReceipt(itemRecord.receipt),
-        };
-      }
-
-      return {
-        ...itemRecord,
-        paymentLink: sanitizeLegacyPaymentLink(itemRecord.paymentLink),
-        ...(Object.hasOwn(itemRecord, "receipt")
-          ? {
-              receipt: sanitizeLegacyReceipt(itemRecord.receipt),
-            }
-          : {}),
-      };
-    }),
-  };
-}
-
 const monthlyExpenseReceiptSchema = z.object({
   fileId: z.string().trim().min(1),
   fileName: z.string().trim().min(1),
@@ -318,9 +213,7 @@ export function parseGoogleDriveMonthlyExpensesContent(
   try {
     const rawContent =
       typeof content === "string" ? JSON.parse(content) : content ?? {};
-    const sanitizedContent = sanitizeLegacyMonthlyExpensesContent(rawContent);
-    const parsedDto =
-      googleDriveMonthlyExpensesDocumentSchema.parse(sanitizedContent);
+    const parsedDto = googleDriveMonthlyExpensesDocumentSchema.parse(rawContent);
 
     return createMonthlyExpensesDocument(parsedDto, operationName);
   } catch (error) {

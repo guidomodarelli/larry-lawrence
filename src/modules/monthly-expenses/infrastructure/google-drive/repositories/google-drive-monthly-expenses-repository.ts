@@ -22,7 +22,6 @@ const DRIVE_FILES_CREATE_ENDPOINT = "drive.files.create";
 const DRIVE_FILES_GET_ENDPOINT = "drive.files.get";
 const DRIVE_FILES_LIST_ENDPOINT = "drive.files.list";
 const DRIVE_FILES_UPDATE_ENDPOINT = "drive.files.update";
-const LEGACY_MONTHLY_EXPENSES_FILE_PREFIX = "monthly-expenses-";
 
 function escapeGoogleDriveQueryValue(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
@@ -39,9 +38,7 @@ export class GoogleDriveMonthlyExpensesRepository
       operation:
         "google-drive-monthly-expenses-repository:getByMonth:findFolder",
     });
-    const file =
-      (await this.findFileByMonth(month, monthlyExpensesFolder?.id)) ??
-      (await this.findLegacyFileByMonth(month));
+    const file = await this.findFileByMonth(month, monthlyExpensesFolder?.id);
 
     if (!file?.id) {
       return null;
@@ -86,16 +83,13 @@ export class GoogleDriveMonthlyExpensesRepository
       document.month,
       monthlyExpensesFolderId,
     );
-    const legacyFile = existingFile
-      ? null
-      : await this.findLegacyFileByMonth(document.month);
-    const fileToUpdate = existingFile ?? legacyFile;
 
     try {
-      if (fileToUpdate?.id) {
+      if (existingFile?.id) {
+        const fileToUpdate = existingFile as drive_v3.Schema$File & { id: string };
         const response = await this.driveClient.files.update({
           ...this.createUpdateRequest({
-            file: fileToUpdate as drive_v3.Schema$File & { id: string },
+            file: fileToUpdate,
             folderId: monthlyExpensesFolderId,
             serializedDocument,
           }),
@@ -125,7 +119,7 @@ export class GoogleDriveMonthlyExpensesRepository
       );
     } catch (error) {
       throw mapGoogleDriveStorageError(error, {
-        endpoint: fileToUpdate?.id
+        endpoint: existingFile?.id
           ? DRIVE_FILES_UPDATE_ENDPOINT
           : DRIVE_FILES_CREATE_ENDPOINT,
         operation: "google-drive-monthly-expenses-repository:save",
@@ -138,11 +132,9 @@ export class GoogleDriveMonthlyExpensesRepository
       driveClient: this.driveClient,
       operation: "google-drive-monthly-expenses-repository:listAll:findFolder",
     });
-    const currentFiles = monthlyExpensesFolder?.id
+    const files = monthlyExpensesFolder?.id
       ? await this.listMonthlyExpenseFilesInFolder(monthlyExpensesFolder.id)
       : [];
-    const legacyFiles = await this.listLegacyMonthlyExpenseFiles();
-    const files = this.deduplicateFilesById([...currentFiles, ...legacyFiles]);
 
     return Promise.all(
       files
@@ -202,18 +194,6 @@ export class GoogleDriveMonthlyExpensesRepository
     };
   }
 
-  private deduplicateFilesById(files: drive_v3.Schema$File[]) {
-    return Array.from(
-      new Map(
-        files
-          .filter((file): file is drive_v3.Schema$File & { id: string } =>
-            Boolean(file.id),
-          )
-          .map((file) => [file.id, file]),
-      ).values(),
-    );
-  }
-
   private async findFileByMonth(month: string, folderId?: string | null) {
     if (!folderId) {
       return null;
@@ -232,25 +212,6 @@ export class GoogleDriveMonthlyExpensesRepository
       throw mapGoogleDriveStorageError(error, {
         endpoint: DRIVE_FILES_LIST_ENDPOINT,
         operation: "google-drive-monthly-expenses-repository:findFileByMonth",
-      });
-    }
-  }
-
-  private async findLegacyFileByMonth(month: string) {
-    try {
-      const response = await this.driveClient.files.list({
-        fields: `files(${DRIVE_FILE_FIELDS})`,
-        orderBy: "modifiedTime desc",
-        pageSize: 1,
-        q: `name = '${escapeGoogleDriveQueryValue(`${LEGACY_MONTHLY_EXPENSES_FILE_PREFIX}${month}.json`)}' and trashed = false`,
-      });
-
-      return response.data.files?.[0] ?? null;
-    } catch (error) {
-      throw mapGoogleDriveStorageError(error, {
-        endpoint: DRIVE_FILES_LIST_ENDPOINT,
-        operation:
-          "google-drive-monthly-expenses-repository:findLegacyFileByMonth",
       });
     }
   }
@@ -279,34 +240,6 @@ export class GoogleDriveMonthlyExpensesRepository
         endpoint: DRIVE_FILES_LIST_ENDPOINT,
         operation:
           "google-drive-monthly-expenses-repository:listMonthlyExpenseFilesInFolder",
-      });
-    }
-  }
-
-  private async listLegacyMonthlyExpenseFiles() {
-    const files: drive_v3.Schema$File[] = [];
-    let pageToken: string | undefined;
-
-    try {
-      do {
-        const response = await this.driveClient.files.list({
-          fields: `files(${DRIVE_FILE_FIELDS}),nextPageToken`,
-          orderBy: "name asc",
-          pageSize: 100,
-          pageToken,
-          q: `name contains '${escapeGoogleDriveQueryValue(LEGACY_MONTHLY_EXPENSES_FILE_PREFIX)}' and trashed = false`,
-        });
-
-        files.push(...(response.data.files ?? []));
-        pageToken = response.data.nextPageToken ?? undefined;
-      } while (pageToken);
-
-      return files;
-    } catch (error) {
-      throw mapGoogleDriveStorageError(error, {
-        endpoint: DRIVE_FILES_LIST_ENDPOINT,
-        operation:
-          "google-drive-monthly-expenses-repository:listLegacyMonthlyExpenseFiles",
       });
     }
   }

@@ -34,16 +34,6 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
         data: {
           files: [],
         },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          files: [],
-        },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          files: [],
-        },
       });
     files.create
       .mockResolvedValueOnce({
@@ -88,7 +78,7 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
       }),
     );
     expect(files.list).toHaveBeenNthCalledWith(
-      3,
+      2,
       expect.objectContaining({
         q: expect.stringContaining("'monthly-expenses-folder-id' in parents"),
       }),
@@ -110,7 +100,7 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
     });
   });
 
-  it("moves and renames a legacy monthly file into the app folder", async () => {
+  it("updates an existing monthly file in the app folder", async () => {
     const { driveClient, files } = createDriveClientMock();
 
     files.list
@@ -126,26 +116,21 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
       })
       .mockResolvedValueOnce({
         data: {
-          files: [],
-        },
-      })
-      .mockResolvedValueOnce({
-        data: {
           files: [
             {
-              id: "legacy-monthly-expenses-file-id",
-              name: "monthly-expenses-2026-03.json",
-              parents: ["root"],
+              id: "monthly-expenses-file-id",
+              name: "gastos-mensuales-2026-marzo.json",
+              parents: ["monthly-expenses-folder-id"],
             },
           ],
         },
       });
     files.update.mockResolvedValueOnce({
       data: {
-        id: "legacy-monthly-expenses-file-id",
+        id: "monthly-expenses-file-id",
         name: "gastos-mensuales-2026-marzo.json",
         webViewLink:
-          "https://drive.google.com/file/d/legacy-monthly-expenses-file-id/view",
+          "https://drive.google.com/file/d/monthly-expenses-file-id/view",
       },
     });
 
@@ -167,24 +152,21 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
 
     expect(files.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        addParents: "monthly-expenses-folder-id",
-        fileId: "legacy-monthly-expenses-file-id",
-        removeParents: "root",
+        fileId: "monthly-expenses-file-id",
         requestBody: {
           name: "gastos-mensuales-2026-marzo.json",
         },
       }),
     );
     expect(result).toEqual({
-      id: "legacy-monthly-expenses-file-id",
+      id: "monthly-expenses-file-id",
       month: "2026-03",
       name: "gastos-mensuales-2026-marzo.json",
-      viewUrl:
-        "https://drive.google.com/file/d/legacy-monthly-expenses-file-id/view",
+      viewUrl: "https://drive.google.com/file/d/monthly-expenses-file-id/view",
     });
   });
 
-  it("lists files from the app folder and legacy files with the previous prefix", async () => {
+  it("lists files from the app folder", async () => {
     const { driveClient, files } = createDriveClientMock();
 
     files.list
@@ -208,28 +190,12 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
             },
           ],
         },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          files: [
-            {
-              id: "legacy-file-id",
-              name: "monthly-expenses-2026-02.json",
-            },
-          ],
-        },
       });
     files.get
       .mockResolvedValueOnce({
         data: JSON.stringify({
           items: [],
           month: "2026-03",
-        }),
-      })
-      .mockResolvedValueOnce({
-        data: JSON.stringify({
-          items: [],
-          month: "2026-02",
         }),
       });
 
@@ -243,20 +209,10 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
         q: expect.stringContaining("'monthly-expenses-folder-id' in parents"),
       }),
     );
-    expect(files.list).toHaveBeenNthCalledWith(
-      3,
-      expect.objectContaining({
-        q: expect.stringContaining("monthly-expenses-"),
-      }),
-    );
     expect(result).toEqual([
       {
         items: [],
         month: "2026-03",
-      },
-      {
-        items: [],
-        month: "2026-02",
       },
     ]);
   });

@@ -21,34 +21,30 @@ describe("HomePage redirect", () => {
     expect("redirect" in result).toBe(true);
   });
 
-  it("maps legacy tab=lenders to /prestadores", async () => {
+  it("ignores tab=lenders and keeps the canonical /gastos redirect", async () => {
     const result = await getServerSideProps(createContext({
       tab: "lenders",
     }));
 
-    expect("redirect" in result && result.redirect?.destination).toBe(
-      "/prestadores",
-    );
+    expect("redirect" in result && result.redirect?.destination).toBe("/gastos");
   });
 
-  it("maps legacy tab=exchange-rates to /cotizaciones", async () => {
+  it("ignores tab=exchange-rates and keeps the canonical /gastos redirect", async () => {
     const result = await getServerSideProps(createContext({
       tab: "exchange-rates",
     }));
 
-    expect("redirect" in result && result.redirect?.destination).toBe(
-      "/cotizaciones",
-    );
+    expect("redirect" in result && result.redirect?.destination).toBe("/gastos");
   });
 
-  it("preserves month when redirecting legacy tab=exchange-rates", async () => {
+  it("preserves month even when a tab query is sent", async () => {
     const result = await getServerSideProps(createContext({
       month: "2026-03",
       tab: "exchange-rates",
     }));
 
     expect("redirect" in result && result.redirect?.destination).toBe(
-      "/cotizaciones?month=2026-03",
+      "/gastos?month=2026-03",
     );
   });
 
