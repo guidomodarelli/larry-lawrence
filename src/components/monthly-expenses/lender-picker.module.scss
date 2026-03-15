@@ -54,9 +54,28 @@
   font-weight: 600;
 }
 
+.optionPrimary {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.optionNotes {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+
 .optionNameHighlight {
   color: inherit;
   background: color-mix(in srgb, var(--primary) 24%, transparent);
+  border-radius: 0.2rem;
+  padding: 0 0.08rem;
+}
+
+.optionNotesHighlight,
+.optionMetaHighlight {
+  color: inherit;
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
   border-radius: 0.2rem;
   padding: 0 0.08rem;
 }
@@ -65,6 +84,10 @@
 .emptyMessage {
   font-size: 0.875rem;
   color: var(--muted-foreground);
+}
+
+.optionMeta {
+  flex-shrink: 0;
 }
 
 .addLenderButton {

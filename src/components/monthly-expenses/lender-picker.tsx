@@ -60,23 +60,35 @@ export function LenderPicker({
 
     if (!trimmedSearchValue) {
       return options.map((option) => ({
+        notesMatchIndices: [] as number[],
         nameMatchIndices: [] as number[],
+        typeLabel: getLenderTypeLabel(option.type),
+        typeMatchIndices: [] as number[],
         option,
       }));
     }
 
     return options.flatMap((option) => {
       const typeLabel = getLenderTypeLabel(option.type);
+      const notes = option.notes ?? "";
       const nameMatchIndices = getFuzzyMatchIndices(option.name, trimmedSearchValue);
+      const notesMatchIndices = getFuzzyMatchIndices(notes, trimmedSearchValue);
       const typeMatchIndices = getFuzzyMatchIndices(typeLabel, trimmedSearchValue);
 
-      if (nameMatchIndices === null && typeMatchIndices === null) {
+      if (
+        nameMatchIndices === null &&
+        notesMatchIndices === null &&
+        typeMatchIndices === null
+      ) {
         return [];
       }
 
       return [
         {
+          notesMatchIndices: notesMatchIndices ?? [],
           nameMatchIndices: nameMatchIndices ?? [],
+          typeLabel,
+          typeMatchIndices: typeMatchIndices ?? [],
           option,
         },
       ];
@@ -128,14 +140,21 @@ export function LenderPicker({
           <Input
             aria-label="Buscar prestador"
             onChange={(event) => setSearchValue(event.target.value)}
-            placeholder="Buscar por nombre o tipo"
+            placeholder="Buscar por nombre, tipo o notas"
             type="text"
             value={searchValue}
           />
 
           <div className={styles.options}>
             {filteredOptions.length > 0 ? (
-              filteredOptions.map(({ nameMatchIndices, option }) => (
+              filteredOptions.map(
+                ({
+                  nameMatchIndices,
+                  notesMatchIndices,
+                  option,
+                  typeLabel,
+                  typeMatchIndices,
+                }) => (
                 <button
                   className={cn(
                     styles.option,
@@ -149,21 +168,44 @@ export function LenderPicker({
                   }}
                   type="button"
                 >
-                  <span className={styles.optionName}>
-                    {hasSearchQuery && nameMatchIndices.length > 0
-                      ? renderHighlightedText(
-                          option.name,
-                          nameMatchIndices,
-                          styles.optionNameHighlight,
-                          `lender-name-${option.id}`,
-                        )
-                      : option.name}
+                  <span className={styles.optionPrimary}>
+                    <span className={styles.optionName}>
+                      {hasSearchQuery && nameMatchIndices.length > 0
+                        ? renderHighlightedText(
+                            option.name,
+                            nameMatchIndices,
+                            styles.optionNameHighlight,
+                            `lender-name-${option.id}`,
+                          )
+                        : option.name}
+                    </span>
+
+                    {option.notes ? (
+                      <span className={styles.optionNotes}>
+                        {hasSearchQuery && notesMatchIndices.length > 0
+                          ? renderHighlightedText(
+                              option.notes,
+                              notesMatchIndices,
+                              styles.optionNotesHighlight,
+                              `lender-notes-${option.id}`,
+                            )
+                          : option.notes}
+                      </span>
+                    ) : null}
                   </span>
                   <span className={styles.optionMeta}>
-                    {getLenderTypeLabel(option.type)}
+                    {hasSearchQuery && typeMatchIndices.length > 0
+                      ? renderHighlightedText(
+                          typeLabel,
+                          typeMatchIndices,
+                          styles.optionMetaHighlight,
+                          `lender-type-${option.id}`,
+                        )
+                      : typeLabel}
                   </span>
                 </button>
-              ))
+                ),
+              )
             ) : (
               <p className={styles.emptyMessage}>{emptyMessage}</p>
             )}

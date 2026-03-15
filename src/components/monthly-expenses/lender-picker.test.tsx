@@ -123,8 +123,8 @@ describe("LenderPicker", () => {
     await user.type(screen.getByLabelText("Buscar prestador"), "BNCN");
 
     expect(
-      screen.getByText((_, element) => element?.textContent === "Banco Nación"),
-    ).toBeInTheDocument();
+      screen.getAllByText((_, element) => element?.textContent === "Banco Nación"),
+    ).not.toHaveLength(0);
     expect(
       screen.queryByText((_, element) => element?.textContent === "Árbol Finanzas"),
     ).not.toBeInTheDocument();
@@ -133,8 +133,8 @@ describe("LenderPicker", () => {
     await user.type(screen.getByLabelText("Buscar prestador"), "NACION");
 
     expect(
-      screen.getByText((_, element) => element?.textContent === "Banco Nación"),
-    ).toBeInTheDocument();
+      screen.getAllByText((_, element) => element?.textContent === "Banco Nación"),
+    ).not.toHaveLength(0);
   });
 
   it("highlights matching lender name parts while typing", async () => {
@@ -169,5 +169,128 @@ describe("LenderPicker", () => {
     ).join("");
 
     expect(highlightedText).toBe("Nación");
+  });
+
+  it("shows lender notes in each option", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LenderPicker
+        onAddLender={jest.fn()}
+        onSelect={jest.fn()}
+        options={[
+          {
+            id: "lender-1",
+            name: "Adrián Saúl Modarelli",
+            notes: "Tío de la familia",
+            type: "family",
+          },
+        ]}
+        selectedLenderId=""
+        selectedLenderName=""
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Seleccioná un prestador" }));
+
+    expect(
+      screen.getByText((_, element) => element?.textContent === "Tío de la familia"),
+    ).toBeInTheDocument();
+  });
+
+  it("filters by lender notes with fuzzy accent-insensitive matching and highlights note matches", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LenderPicker
+        onAddLender={jest.fn()}
+        onSelect={jest.fn()}
+        options={[
+          {
+            id: "lender-1",
+            name: "Adrián Saúl Modarelli",
+            notes: "Crédito ágil mensual",
+            type: "family",
+          },
+          {
+            id: "lender-2",
+            name: "Banco Norte",
+            notes: "Cuenta corriente",
+            type: "bank",
+          },
+        ]}
+        selectedLenderId=""
+        selectedLenderName=""
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Seleccioná un prestador" }));
+    await user.type(screen.getByLabelText("Buscar prestador"), "AGIL");
+
+    const lenderOption = screen.getByRole("button", {
+      name: /Adrián Saúl Modarelli/i,
+    });
+    const notesElement = screen.getByText(
+      (_, element) => element?.textContent === "Crédito ágil mensual",
+    );
+    const highlightedText = Array.from(
+      notesElement.querySelectorAll("mark"),
+      (element) => element.textContent ?? "",
+    ).join("");
+
+    expect(lenderOption).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Banco Norte/i }),
+    ).not.toBeInTheDocument();
+    expect(highlightedText).toBe("ágil");
+  });
+
+  it("filters by lender type with fuzzy matching and highlights type matches", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LenderPicker
+        onAddLender={jest.fn()}
+        onSelect={jest.fn()}
+        options={[
+          {
+            id: "lender-1",
+            name: "Lucía Pérez",
+            type: "family",
+          },
+          {
+            id: "lender-2",
+            name: "Banco Sur",
+            type: "bank",
+          },
+        ]}
+        selectedLenderId=""
+        selectedLenderName=""
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Seleccioná un prestador" }));
+    await user.type(screen.getByLabelText("Buscar prestador"), "FMLR");
+
+    const lenderOption = screen.getByRole("button", {
+      name: /Lucía Pérez/i,
+    });
+    const typeElement = lenderOption.lastElementChild;
+
+    expect(typeElement).not.toBeNull();
+
+    if (typeElement === null) {
+      throw new Error("Expected lender type element");
+    }
+
+    const highlightedText = Array.from(
+      typeElement.querySelectorAll("mark"),
+      (element) => element.textContent ?? "",
+    ).join("");
+
+    expect(
+      screen.queryByRole("button", { name: /Banco Sur/i }),
+    ).not.toBeInTheDocument();
+    expect(highlightedText).toBe("Fmlr");
   });
 });
