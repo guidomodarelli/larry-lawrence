@@ -357,6 +357,32 @@
   white-space: nowrap;
 }
 
+.stickyActionsCell {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: var(--background);
+  box-shadow:
+    -1px 0 0 color-mix(in srgb, var(--border) 80%, transparent),
+    -12px 0 12px -12px color-mix(in srgb, var(--foreground) 22%, transparent);
+}
+
+.tableWrapper :global([data-slot="table-head"]:last-child) {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: var(--background);
+  box-shadow: -1px 0 0 color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.tableWrapper :global([data-slot="table-row"]:hover) .stickyActionsCell {
+  background: color-mix(in srgb, var(--muted) 70%, var(--background));
+}
+
+.tableWrapper :global([data-slot="table-row"][data-state="selected"]) .stickyActionsCell {
+  background: var(--muted);
+}
+
 .paymentLinkAction {
   display: inline-flex;
   width: fit-content;

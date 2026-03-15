@@ -1568,6 +1568,7 @@ export function MonthlyExpensesTable({
         enableHiding: false,
         enableSorting: false,
         header: () => null,
+        meta: { cellClassName: styles.stickyActionsCell },
       },
     ],
     [
