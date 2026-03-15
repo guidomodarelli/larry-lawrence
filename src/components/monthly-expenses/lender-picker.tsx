@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { getFuzzyMatchIndices, renderHighlightedText } from "./fuzzy-search";
+import {
+  compareFuzzyMatchRank,
+  getFuzzyMatchIndices,
+  getFuzzyMatchRank,
+  type FuzzyMatchRank,
+  renderHighlightedText,
+} from "./fuzzy-search";
 import styles from "./lender-picker.module.scss";
 
 export interface LenderOption {
@@ -39,6 +45,44 @@ function getLenderTypeLabel(type: LenderOption["type"]): string {
   }
 }
 
+function getBestFuzzyRank(
+  nameRank: FuzzyMatchRank | null,
+  notesRank: FuzzyMatchRank | null,
+  typeRank: FuzzyMatchRank | null,
+): { priority: number; rank: FuzzyMatchRank } | null {
+  const candidates: Array<{ priority: number; rank: FuzzyMatchRank }> = [];
+
+  if (nameRank) {
+    candidates.push({ priority: 0, rank: nameRank });
+  }
+
+  if (notesRank) {
+    candidates.push({ priority: 1, rank: notesRank });
+  }
+
+  if (typeRank) {
+    candidates.push({ priority: 2, rank: typeRank });
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  return candidates.reduce((bestCandidate, candidate) => {
+    const rankComparison = compareFuzzyMatchRank(candidate.rank, bestCandidate.rank);
+
+    if (rankComparison < 0) {
+      return candidate;
+    }
+
+    if (rankComparison === 0 && candidate.priority < bestCandidate.priority) {
+      return candidate;
+    }
+
+    return bestCandidate;
+  });
+}
+
 export function LenderPicker({
   className,
   emptyMessage = "No hay prestadores registrados todavía.",
@@ -68,31 +112,58 @@ export function LenderPicker({
       }));
     }
 
-    return options.flatMap((option) => {
-      const typeLabel = getLenderTypeLabel(option.type);
-      const notes = option.notes ?? "";
-      const nameMatchIndices = getFuzzyMatchIndices(option.name, trimmedSearchValue);
-      const notesMatchIndices = getFuzzyMatchIndices(notes, trimmedSearchValue);
-      const typeMatchIndices = getFuzzyMatchIndices(typeLabel, trimmedSearchValue);
+    return options
+      .flatMap((option, optionIndex) => {
+        const typeLabel = getLenderTypeLabel(option.type);
+        const notes = option.notes ?? "";
+        const nameMatchIndices = getFuzzyMatchIndices(option.name, trimmedSearchValue);
+        const notesMatchIndices = getFuzzyMatchIndices(notes, trimmedSearchValue);
+        const typeMatchIndices = getFuzzyMatchIndices(typeLabel, trimmedSearchValue);
+        const nameRank = getFuzzyMatchRank(option.name, trimmedSearchValue);
+        const notesRank = getFuzzyMatchRank(notes, trimmedSearchValue);
+        const typeRank = getFuzzyMatchRank(typeLabel, trimmedSearchValue);
+        const bestRank = getBestFuzzyRank(nameRank, notesRank, typeRank);
 
-      if (
-        nameMatchIndices === null &&
-        notesMatchIndices === null &&
-        typeMatchIndices === null
-      ) {
-        return [];
-      }
+        if (
+          nameMatchIndices === null &&
+          notesMatchIndices === null &&
+          typeMatchIndices === null
+        ) {
+          return [];
+        }
 
-      return [
-        {
-          notesMatchIndices: notesMatchIndices ?? [],
-          nameMatchIndices: nameMatchIndices ?? [],
-          typeLabel,
-          typeMatchIndices: typeMatchIndices ?? [],
-          option,
-        },
-      ];
-    });
+        if (!bestRank) {
+          return [];
+        }
+
+        return [
+          {
+            bestRank,
+            notesMatchIndices: notesMatchIndices ?? [],
+            nameMatchIndices: nameMatchIndices ?? [],
+            optionIndex,
+            typeLabel,
+            typeMatchIndices: typeMatchIndices ?? [],
+            option,
+          },
+        ];
+      })
+      .sort((leftMatch, rightMatch) => {
+        const rankComparison = compareFuzzyMatchRank(
+          leftMatch.bestRank.rank,
+          rightMatch.bestRank.rank,
+        );
+
+        if (rankComparison !== 0) {
+          return rankComparison;
+        }
+
+        if (leftMatch.bestRank.priority !== rightMatch.bestRank.priority) {
+          return leftMatch.bestRank.priority - rightMatch.bestRank.priority;
+        }
+
+        return leftMatch.optionIndex - rightMatch.optionIndex;
+      });
   }, [options, searchValue]);
 
   useEffect(() => {

@@ -17,6 +17,37 @@ export interface FuzzyMatchRank {
   startIndex: number;
 }
 
+export function compareFuzzyMatchRank(
+  leftRank: FuzzyMatchRank,
+  rightRank: FuzzyMatchRank,
+): number {
+  if (leftRank.longestRun !== rightRank.longestRun) {
+    return rightRank.longestRun - leftRank.longestRun;
+  }
+
+  if (leftRank.contiguousPairCount !== rightRank.contiguousPairCount) {
+    return rightRank.contiguousPairCount - leftRank.contiguousPairCount;
+  }
+
+  if (leftRank.gapCount !== rightRank.gapCount) {
+    return leftRank.gapCount - rightRank.gapCount;
+  }
+
+  if (leftRank.maxGap !== rightRank.maxGap) {
+    return leftRank.maxGap - rightRank.maxGap;
+  }
+
+  if (leftRank.span !== rightRank.span) {
+    return leftRank.span - rightRank.span;
+  }
+
+  if (leftRank.startIndex !== rightRank.startIndex) {
+    return leftRank.startIndex - rightRank.startIndex;
+  }
+
+  return 0;
+}
+
 export function normalizeSearchValue(value: string): string {
   return value
     .normalize("NFD")

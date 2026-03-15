@@ -44,6 +44,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import {
+  compareFuzzyMatchRank,
   getFuzzyMatchIndices,
   getFuzzyMatchRank,
   renderHighlightedText,
@@ -640,28 +641,10 @@ function compareDescriptionByFuzzyRank(
     });
   }
 
-  if (leftRank.longestRun !== rightRank.longestRun) {
-    return rightRank.longestRun - leftRank.longestRun;
-  }
+  const rankComparison = compareFuzzyMatchRank(leftRank, rightRank);
 
-  if (leftRank.contiguousPairCount !== rightRank.contiguousPairCount) {
-    return rightRank.contiguousPairCount - leftRank.contiguousPairCount;
-  }
-
-  if (leftRank.gapCount !== rightRank.gapCount) {
-    return leftRank.gapCount - rightRank.gapCount;
-  }
-
-  if (leftRank.maxGap !== rightRank.maxGap) {
-    return leftRank.maxGap - rightRank.maxGap;
-  }
-
-  if (leftRank.span !== rightRank.span) {
-    return leftRank.span - rightRank.span;
-  }
-
-  if (leftRank.startIndex !== rightRank.startIndex) {
-    return leftRank.startIndex - rightRank.startIndex;
+  if (rankComparison !== 0) {
+    return rankComparison;
   }
 
   if (leftDescription.length !== rightDescription.length) {

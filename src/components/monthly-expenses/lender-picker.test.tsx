@@ -293,4 +293,81 @@ describe("LenderPicker", () => {
     ).not.toBeInTheDocument();
     expect(highlightedText).toBe("Fmlr");
   });
+
+  it("prioritizes lender matches with more contiguous letters", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LenderPicker
+        onAddLender={jest.fn()}
+        onSelect={jest.fn()}
+        options={[
+          {
+            id: "lender-1",
+            name: "Impuestos del auto",
+            type: "other",
+          },
+          {
+            id: "lender-2",
+            name: "Limpieza Domestica",
+            type: "other",
+          },
+          {
+            id: "lender-3",
+            name: "Iphone",
+            type: "other",
+          },
+        ]}
+        selectedLenderId=""
+        selectedLenderName=""
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Seleccioná un prestador" }));
+    await user.type(screen.getByLabelText("Buscar prestador"), "ipe");
+
+    const getOptionButtonByName = (name: string) => {
+      const normalizedName = name.toLowerCase().replace(/\s+/g, "");
+      const button = screen.getAllByRole("button").find((currentButton) => {
+        const className =
+          typeof currentButton.className === "string" ? currentButton.className : "";
+
+        if (!className.includes("option")) {
+          return false;
+        }
+
+        const normalizedContent = (currentButton.textContent ?? "")
+          .toLowerCase()
+          .replace(/\s+/g, "");
+
+        return normalizedContent.includes(normalizedName);
+      });
+
+      expect(button).toBeDefined();
+
+      if (button === undefined) {
+        throw new Error(`Expected lender option with name \"${name}\"`);
+      }
+
+      return button;
+    };
+
+    const iphoneOption = getOptionButtonByName("Iphone");
+    const impuestosOption = getOptionButtonByName("Impuestos del auto");
+    const limpiezaOption = getOptionButtonByName("Limpieza Domestica");
+
+    const allOptionButtons = [iphoneOption, impuestosOption, limpiezaOption];
+    const orderedByDom = [...allOptionButtons].sort((leftButton, rightButton) => {
+      if (leftButton === rightButton) {
+        return 0;
+      }
+
+      return leftButton.compareDocumentPosition(rightButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+        ? -1
+        : 1;
+    });
+
+    expect(orderedByDom[0]).toBe(iphoneOption);
+  });
 });
