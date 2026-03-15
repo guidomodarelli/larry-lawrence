@@ -644,9 +644,7 @@ export default function MonthlyExpensesPage({
     }
   }, [isLenderCreateModalOpen]);
 
-  const feedbackMessage =
-    formState.error ??
-    "Usá Agregar gasto o el menú de cada fila para gestionar el mes actual.";
+  const feedbackMessage = formState.error ?? "";
   const feedbackTone = formState.error ? "error" : "default";
 
   const actionDisabled =

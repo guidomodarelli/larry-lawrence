@@ -812,8 +812,7 @@ export function MonthlyExpensesTable({
         <div className={styles.headerTopRow}>
           <div className={styles.header}>
             <p className={styles.pageDescription}>
-              Cargá, editá y guardá tus gastos mensuales en la base de datos de
-              la app.
+              Cargá, editá y guardá tus gastos mensuales.
             </p>
           </div>
         </div>
@@ -910,8 +909,7 @@ export function MonthlyExpensesTable({
           <div className={styles.tableHeader}>
             <h2 className={styles.tableTitle}>Detalle del mes</h2>
             <p className={styles.tableDescription}>
-              Editá cada gasto desde su menú de acciones y guardá los cambios del
-              mes.
+              Editá cada gasto desde su menú de acciones.
             </p>
           </div>
 
@@ -931,17 +929,19 @@ export function MonthlyExpensesTable({
             />
           </div>
 
-          <p
-            aria-live="polite"
-            className={cn(
-              styles.feedback,
-              feedbackTone === "error" && styles.errorText,
-              feedbackTone === "success" && styles.successText,
-            )}
-            role={feedbackTone === "error" ? "alert" : undefined}
-          >
-            {feedbackMessage}
-          </p>
+          {feedbackMessage.trim().length > 0 ? (
+            <p
+              aria-live="polite"
+              className={cn(
+                styles.feedback,
+                feedbackTone === "error" && styles.errorText,
+                feedbackTone === "success" && styles.successText,
+              )}
+              role={feedbackTone === "error" ? "alert" : undefined}
+            >
+              {feedbackMessage}
+            </p>
+          ) : null}
         </div>
 
         <ExpenseSheet
