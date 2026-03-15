@@ -286,21 +286,28 @@ export function LendersPanel({
 
       <div className={styles.list}>
         {lenders.length > 0 ? (
-          lenders.map((lender) => (
-            <div className={styles.listItem} key={lender.id}>
-              <div className={styles.listCopy}>
-                <p className={styles.listTitle}>{lender.name}</p>
-                <p className={styles.listMeta}>
-                  {getLenderTypeLabel(lender.type)}
-                </p>
+          lenders.map((lender) => {
+            const lenderNotes = lender.notes?.trim();
+
+            return (
+              <div className={styles.listItem} key={lender.id}>
+                <div className={styles.listCopy}>
+                  <p className={styles.listTitle}>{lender.name}</p>
+                  <p className={styles.listMeta}>
+                    {getLenderTypeLabel(lender.type)}
+                  </p>
+                  {lenderNotes ? (
+                    <p className={styles.listNotes}>{lenderNotes}</p>
+                  ) : null}
+                </div>
+                <ConfirmDeleteButton
+                  message={`¿Querés eliminar a ${lender.name} del catálogo?`}
+                  menuAriaLabel={`Abrir acciones para ${lender.name}`}
+                  onConfirm={() => onDelete(lender.id)}
+                />
               </div>
-              <ConfirmDeleteButton
-                message={`¿Querés eliminar a ${lender.name} del catálogo?`}
-                menuAriaLabel={`Abrir acciones para ${lender.name}`}
-                onConfirm={() => onDelete(lender.id)}
-              />
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className={styles.emptyState}>
             Todavía no hay prestadores guardados.

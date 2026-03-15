@@ -688,6 +688,35 @@ describe("MonthlyExpensesPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("renders lender notes in the lenders list", () => {
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialActiveTab="lenders"
+        initialLendersCatalog={{
+          lenders: [
+            {
+              id: "lender-1",
+              name: "Adrián Saúl Modarelli",
+              notes: "Priorizar transferencia por CBU",
+              type: "family",
+            },
+          ],
+        }}
+        initialDocument={{
+          items: [],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Adrián Saúl Modarelli")).toBeInTheDocument();
+    expect(screen.getByText("Familiar")).toBeInTheDocument();
+    expect(
+      screen.getByText("Priorizar transferencia por CBU"),
+    ).toBeInTheDocument();
+  });
+
   it("renders sidebar links for the section routes", () => {
     renderWithProviders(
       <MonthlyExpensesPage
