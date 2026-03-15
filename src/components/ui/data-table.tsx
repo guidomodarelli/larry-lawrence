@@ -15,7 +15,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -152,6 +152,8 @@ export function DataTable<TData, TValue>({
     hasModifiedColumnVisibility || shouldShowResetSortingMenuItem;
   const shouldShowToolbarActions = shouldShowColumnVisibilityToggle;
   const shouldShowToolbar = Boolean(filterColumnId) || shouldShowToolbarActions;
+  const filterColumn = filterColumnId ? table.getColumn(filterColumnId) : undefined;
+  const filterValue = String(filterColumn?.getFilterValue() ?? "");
   const footerGroups = table.getFooterGroups();
   const hasFooterContent = footerGroups.some((footerGroup) =>
     footerGroup.headers.some(
@@ -169,16 +171,32 @@ export function DataTable<TData, TValue>({
         <div className="grid gap-2">
           <div className="flex flex-wrap items-center gap-3">
             {filterColumnId ? (
-              <Input
-                aria-label={filterLabel}
-                className="w-full max-w-sm"
-                onChange={(event) =>
-                  table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
-                }
-                placeholder={filterPlaceholder}
-                type="text"
-                value={String(table.getColumn(filterColumnId)?.getFilterValue() ?? "")}
-              />
+              <div className="relative w-full max-w-sm">
+                <Input
+                  aria-label={filterLabel}
+                  className="w-full pr-9"
+                  onChange={(event) => {
+                    filterColumn?.setFilterValue(event.target.value);
+                  }}
+                  placeholder={filterPlaceholder}
+                  type="text"
+                  value={filterValue}
+                />
+                {filterValue ? (
+                  <Button
+                    aria-label="Limpiar filtro"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 active:-translate-y-1/2"
+                    onClick={() => {
+                      filterColumn?.setFilterValue("");
+                    }}
+                    size="icon-xs"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <X aria-hidden="true" />
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
 
             {shouldShowToolbarActions ? (

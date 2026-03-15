@@ -2500,6 +2500,21 @@ describe("MonthlyExpensesPage", () => {
     expect(matchingDescription).toBeInTheDocument();
     expect(screen.queryByText("Agua")).not.toBeInTheDocument();
     expect(highlightedText).toBe("Préstj");
+
+    const clearFilterButton = screen.getByRole("button", {
+      name: "Limpiar filtro",
+    });
+
+    await user.click(clearFilterButton);
+
+    expect(screen.getByRole("textbox", { name: "Filtrar gastos" })).toHaveValue("");
+    expect(screen.getByText("Préstamo tarjeta")).toBeInTheDocument();
+    expect(screen.getByText("Agua")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Limpiar filtro",
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows validation when a debt is missing start month or installments", async () => {
