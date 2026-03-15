@@ -10,6 +10,10 @@ const PAYMENT_LINK_URL_SCHEMA = z.url({
   protocol: /^https?$/,
   hostname: z.regexes.domain,
 });
+const RECEIPT_VIEW_URL_SCHEMA = z.url({
+  protocol: /^https?$/,
+  hostname: z.regexes.domain,
+});
 
 function normalizeHttpPaymentLink(value: string): string {
   const normalizedValue = value.trim();
@@ -49,6 +53,22 @@ const monthlyExpenseItemSchema = z.object({
     .trim()
     .refine((value) => isValidHttpPaymentLink(value))
     .transform((value) => normalizeHttpPaymentLink(value))
+    .nullable()
+    .optional(),
+  receipt: z
+    .object({
+      fileId: z.string().trim().min(1),
+      fileName: z.string().trim().min(1),
+      fileViewUrl: z
+        .string()
+        .trim()
+        .refine((value) => RECEIPT_VIEW_URL_SCHEMA.safeParse(value).success),
+      folderId: z.string().trim().min(1),
+      folderViewUrl: z
+        .string()
+        .trim()
+        .refine((value) => RECEIPT_VIEW_URL_SCHEMA.safeParse(value).success),
+    })
     .nullable()
     .optional(),
   subtotal: z.number().positive(),
@@ -96,6 +116,22 @@ const monthlyExpensesDocumentEnvelopeSchema = z.object({
           .trim()
           .refine((value) => isValidHttpPaymentLink(value))
           .transform((value) => normalizeHttpPaymentLink(value))
+          .nullable()
+          .optional(),
+        receipt: z
+          .object({
+            fileId: z.string().trim().min(1),
+            fileName: z.string().trim().min(1),
+            fileViewUrl: z
+              .string()
+              .trim()
+              .refine((value) => RECEIPT_VIEW_URL_SCHEMA.safeParse(value).success),
+            folderId: z.string().trim().min(1),
+            folderViewUrl: z
+              .string()
+              .trim()
+              .refine((value) => RECEIPT_VIEW_URL_SCHEMA.safeParse(value).success),
+          })
           .nullable()
           .optional(),
         subtotal: z.number().positive(),

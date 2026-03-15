@@ -1,4 +1,5 @@
 import type { MonthlyExpensesRepository } from "../../domain/repositories/monthly-expenses-repository";
+import type { MonthlyExpenseReceiptsRepository } from "../../domain/repositories/monthly-expense-receipts-repository";
 import { saveMonthlyExpensesDocument } from "./save-monthly-expenses-document";
 
 describe("saveMonthlyExpensesDocument", () => {
@@ -66,5 +67,156 @@ describe("saveMonthlyExpensesDocument", () => {
       name: "gastos-mensuales-2026-marzo.json",
       viewUrl: "https://drive.google.com/file/d/monthly-expenses-file-id/view",
     });
+  });
+
+  it("renames receipt folder when an existing expense description changes", async () => {
+    const repository: MonthlyExpensesRepository = {
+      getByMonth: jest.fn().mockResolvedValue({
+        items: [
+          {
+            currency: "ARS",
+            description: "Internet viejo",
+            id: "expense-1",
+            occurrencesPerMonth: 1,
+            receipt: {
+              fileId: "receipt-file-id",
+              fileName: "comprobante.pdf",
+              fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+              folderId: "receipt-folder-id",
+              folderViewUrl:
+                "https://drive.google.com/drive/folders/receipt-folder-id",
+            },
+            subtotal: 100,
+            total: 100,
+          },
+        ],
+        month: "2026-03",
+      }),
+      listAll: jest.fn(),
+      save: jest.fn().mockResolvedValue({
+        id: "monthly-expenses-file-id",
+        month: "2026-03",
+        name: "gastos-mensuales-2026-marzo.json",
+        viewUrl: null,
+      }),
+    };
+    const receiptsRepository: MonthlyExpenseReceiptsRepository = {
+      renameExpenseFolder: jest.fn().mockResolvedValue(undefined),
+      saveReceipt: jest.fn(),
+    };
+
+    await saveMonthlyExpensesDocument({
+      command: {
+        items: [
+          {
+            currency: "ARS",
+            description: "Internet nuevo",
+            id: "expense-1",
+            occurrencesPerMonth: 1,
+            receipt: {
+              fileId: "receipt-file-id",
+              fileName: "comprobante.pdf",
+              fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+              folderId: "receipt-folder-id",
+              folderViewUrl:
+                "https://drive.google.com/drive/folders/receipt-folder-id",
+            },
+            subtotal: 100,
+          },
+        ],
+        month: "2026-03",
+      },
+      getExchangeRateSnapshot: jest.fn().mockResolvedValue({
+        blueRate: 1290,
+        iibbRateDecimalUsed: 0.02,
+        month: "2026-03",
+        officialRate: 1200,
+        solidarityRate: 1476,
+        source: "ambito-historico-general",
+        sourceDateIso: "2026-03-31",
+        updatedAtIso: "2026-03-14T12:00:00.000Z",
+      }),
+      receiptsRepository,
+      repository,
+    });
+
+    expect(receiptsRepository.renameExpenseFolder).toHaveBeenCalledWith({
+      folderId: "receipt-folder-id",
+      nextDescription: "Internet nuevo",
+    });
+  });
+
+  it("does not rename receipt folders when description remains unchanged", async () => {
+    const repository: MonthlyExpensesRepository = {
+      getByMonth: jest.fn().mockResolvedValue({
+        items: [
+          {
+            currency: "ARS",
+            description: "Internet",
+            id: "expense-1",
+            occurrencesPerMonth: 1,
+            receipt: {
+              fileId: "receipt-file-id",
+              fileName: "comprobante.pdf",
+              fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+              folderId: "receipt-folder-id",
+              folderViewUrl:
+                "https://drive.google.com/drive/folders/receipt-folder-id",
+            },
+            subtotal: 100,
+            total: 100,
+          },
+        ],
+        month: "2026-03",
+      }),
+      listAll: jest.fn(),
+      save: jest.fn().mockResolvedValue({
+        id: "monthly-expenses-file-id",
+        month: "2026-03",
+        name: "gastos-mensuales-2026-marzo.json",
+        viewUrl: null,
+      }),
+    };
+    const receiptsRepository: MonthlyExpenseReceiptsRepository = {
+      renameExpenseFolder: jest.fn().mockResolvedValue(undefined),
+      saveReceipt: jest.fn(),
+    };
+
+    await saveMonthlyExpensesDocument({
+      command: {
+        items: [
+          {
+            currency: "ARS",
+            description: "Internet",
+            id: "expense-1",
+            occurrencesPerMonth: 1,
+            receipt: {
+              fileId: "receipt-file-id",
+              fileName: "comprobante.pdf",
+              fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+              folderId: "receipt-folder-id",
+              folderViewUrl:
+                "https://drive.google.com/drive/folders/receipt-folder-id",
+            },
+            subtotal: 100,
+          },
+        ],
+        month: "2026-03",
+      },
+      getExchangeRateSnapshot: jest.fn().mockResolvedValue({
+        blueRate: 1290,
+        iibbRateDecimalUsed: 0.02,
+        month: "2026-03",
+        officialRate: 1200,
+        solidarityRate: 1476,
+        source: "ambito-historico-general",
+        sourceDateIso: "2026-03-31",
+        updatedAtIso: "2026-03-14T12:00:00.000Z",
+      }),
+      receiptsRepository,
+      repository,
+    });
+
+    expect(receiptsRepository.renameExpenseFolder).not.toHaveBeenCalled();
   });
 });

@@ -39,6 +39,11 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
         data: {
           files: [],
         },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          files: [],
+        },
       });
     files.create
       .mockResolvedValueOnce({
@@ -83,7 +88,7 @@ describe("GoogleDriveMonthlyExpensesRepository", () => {
       }),
     );
     expect(files.list).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.objectContaining({
         q: expect.stringContaining("'monthly-expenses-folder-id' in parents"),
       }),

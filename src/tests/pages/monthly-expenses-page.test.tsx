@@ -3622,6 +3622,94 @@ describe("MonthlyExpensesPage", () => {
     expect(screen.getAllByText("Abrir página de pago").length).toBeGreaterThan(0);
   });
 
+  it("renders Comprobante and Carpeta de comprobantes columns after Link", () => {
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          exchangeRateLoadError: null,
+          exchangeRateSnapshot: {
+            blueRate: 1290,
+            month: "2026-03",
+            officialRate: 1200,
+            solidarityRate: 1476,
+          },
+          items: [
+            {
+              currency: "USD",
+              description: "Electricidad",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              paymentLink: "pagos.empresa-energia.com",
+              subtotal: 45,
+              total: 45,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    const headers = screen
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent?.trim() ?? "");
+    const linkHeaderIndex = headers.indexOf("Link");
+    const receiptHeaderIndex = headers.indexOf("Comprobante");
+    const receiptFolderHeaderIndex = headers.indexOf("Carpeta de comprobantes");
+
+    expect(linkHeaderIndex).toBeGreaterThanOrEqual(0);
+    expect(receiptHeaderIndex).toBe(linkHeaderIndex + 1);
+    expect(receiptFolderHeaderIndex).toBe(receiptHeaderIndex + 1);
+    expect(
+      screen.getByRole("button", { name: "Adjuntar comprobante" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders receipt and folder links when receipt metadata is present", () => {
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [
+            {
+              currency: "ARS",
+              description: "Internet",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              paymentLink: null,
+              receipt: {
+                fileId: "receipt-file-id",
+                fileName: "comprobante.pdf",
+                fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+                folderId: "receipt-folder-id",
+                folderViewUrl: "https://drive.google.com/drive/folders/receipt-folder-id",
+              },
+              subtotal: 100,
+              total: 100,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    const receiptLink = screen.getByRole("link", {
+      name: "Ver comprobante",
+    });
+    const receiptFolderLink = screen.getByRole("link", {
+      name: "Ver carpeta",
+    });
+
+    expect(receiptLink).toHaveAttribute(
+      "href",
+      "https://drive.google.com/file/d/receipt-file-id/view",
+    );
+    expect(receiptFolderLink).toHaveAttribute(
+      "href",
+      "https://drive.google.com/drive/folders/receipt-folder-id",
+    );
+  });
+
   it("sorts Link by rows with and without payment links", async () => {
     const user = userEvent.setup();
 

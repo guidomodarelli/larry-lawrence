@@ -1,4 +1,5 @@
 import type { MonthlyExpensesRepository } from "../../domain/repositories/monthly-expenses-repository";
+import type { MonthlyExpenseReceiptsRepository } from "../../domain/repositories/monthly-expense-receipts-repository";
 import {
   createMonthlyExpensesDocument,
   type MonthlyExpensesDocument,
@@ -16,12 +17,52 @@ interface SaveMonthlyExpensesDocumentDependencies {
   getExchangeRateSnapshot: (
     month: string,
   ) => Promise<MonthlyExchangeRateSnapshot>;
+  receiptsRepository?: MonthlyExpenseReceiptsRepository;
   repository: MonthlyExpensesRepository;
+}
+
+async function syncReceiptFolderRenames({
+  currentDocument,
+  nextDocument,
+  receiptsRepository,
+}: {
+  currentDocument: MonthlyExpensesDocument;
+  nextDocument: MonthlyExpensesDocument;
+  receiptsRepository: MonthlyExpenseReceiptsRepository;
+}): Promise<void> {
+  const currentItemsById = new Map(
+    currentDocument.items.map((item) => [item.id, item]),
+  );
+
+  for (const nextItem of nextDocument.items) {
+    const currentItem = currentItemsById.get(nextItem.id);
+
+    if (!currentItem) {
+      continue;
+    }
+
+    if (currentItem.description === nextItem.description) {
+      continue;
+    }
+
+    const currentFolderId = currentItem.receipt?.folderId?.trim();
+    const nextFolderId = nextItem.receipt?.folderId?.trim();
+
+    if (!currentFolderId || !nextFolderId || currentFolderId !== nextFolderId) {
+      continue;
+    }
+
+    await receiptsRepository.renameExpenseFolder({
+      folderId: nextFolderId,
+      nextDescription: nextItem.description,
+    });
+  }
 }
 
 export async function saveMonthlyExpensesDocument({
   command,
   getExchangeRateSnapshot,
+  receiptsRepository,
   repository,
 }: SaveMonthlyExpensesDocumentDependencies): Promise<StoredMonthlyExpensesDocumentResult> {
   const validatedBaseDocument: MonthlyExpensesDocument = createMonthlyExpensesDocument(
@@ -31,6 +72,9 @@ export async function saveMonthlyExpensesDocument({
   const exchangeRateSnapshot = await getExchangeRateSnapshot(
     validatedBaseDocument.month,
   );
+  const currentDocument = receiptsRepository
+    ? await repository.getByMonth(validatedBaseDocument.month)
+    : null;
   const validatedDocument: MonthlyExpensesDocument = createMonthlyExpensesDocument(
     {
       ...toMonthlyExpensesDocumentInput(validatedBaseDocument),
@@ -43,6 +87,14 @@ export async function saveMonthlyExpensesDocument({
     },
     "Saving monthly expenses",
   );
+
+  if (currentDocument && receiptsRepository) {
+    await syncReceiptFolderRenames({
+      currentDocument,
+      nextDocument: validatedDocument,
+      receiptsRepository,
+    });
+  }
 
   return toStoredMonthlyExpensesDocumentResult(
     await repository.save(validatedDocument),

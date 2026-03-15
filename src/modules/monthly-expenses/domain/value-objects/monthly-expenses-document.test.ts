@@ -216,4 +216,67 @@ describe("monthlyExpensesDocument", () => {
       ),
     ).toThrow("Saving monthly expenses requires every payment link to be a valid URL.");
   });
+
+  it("normalizes receipt metadata and keeps Drive links", () => {
+    const result = createMonthlyExpensesDocument(
+      {
+        items: [
+          {
+            currency: "ARS",
+            description: "Internet",
+            id: "expense-1",
+            occurrencesPerMonth: 1,
+            receipt: {
+              fileId: " receipt-file-id ",
+              fileName: " comprobante.pdf ",
+              fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+              folderId: " receipt-folder-id ",
+              folderViewUrl:
+                "https://drive.google.com/drive/folders/receipt-folder-id",
+            },
+            subtotal: 45,
+          },
+        ],
+        month: "2026-03",
+      },
+      "Saving monthly expenses",
+    );
+
+    expect(result.items[0]?.receipt).toEqual({
+      fileId: "receipt-file-id",
+      fileName: "comprobante.pdf",
+      fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+      folderId: "receipt-folder-id",
+      folderViewUrl: "https://drive.google.com/drive/folders/receipt-folder-id",
+    });
+  });
+
+  it("rejects receipt metadata when Drive URLs are invalid", () => {
+    expect(() =>
+      createMonthlyExpensesDocument(
+        {
+          items: [
+            {
+              currency: "ARS",
+              description: "Internet",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              receipt: {
+                fileId: "receipt-file-id",
+                fileName: "comprobante.pdf",
+                fileViewUrl: "not-a-url",
+                folderId: "receipt-folder-id",
+                folderViewUrl: "https://drive.google.com/drive/folders/receipt-folder-id",
+              },
+              subtotal: 45,
+            },
+          ],
+          month: "2026-03",
+        },
+        "Saving monthly expenses",
+      ),
+    ).toThrow(
+      "Saving monthly expenses requires every receipt to include valid Drive URLs.",
+    );
+  });
 });

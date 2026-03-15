@@ -22,11 +22,17 @@ describe("GoogleDriveUserFilesRepository", () => {
   it("creates the visible Drive folder and stores user files inside it", async () => {
     const { driveClient, files } = createDriveClientMock();
 
-    files.list.mockResolvedValueOnce({
-      data: {
-        files: [],
-      },
-    });
+    files.list
+      .mockResolvedValueOnce({
+        data: {
+          files: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          files: [],
+        },
+      });
     files.create
       .mockResolvedValueOnce({
         data: {

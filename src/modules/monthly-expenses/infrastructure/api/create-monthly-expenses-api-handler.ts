@@ -5,6 +5,9 @@ import {
   GoogleOAuthAuthenticationError,
   GoogleOAuthConfigurationError,
 } from "@/modules/auth/infrastructure/oauth/google-oauth-token";
+import {
+  MonthlyExpenseReceiptFolderConflictError,
+} from "@/modules/monthly-expenses/application/errors/monthly-expense-receipt-folder-conflict-error";
 import type { TursoDatabase } from "@/modules/shared/infrastructure/database/drizzle/turso-database";
 import { TursoConfigurationError } from "@/modules/shared/infrastructure/database/turso-server-config";
 import {
@@ -16,6 +19,10 @@ import type { SaveMonthlyExpensesCommand } from "../../application/commands/save
 
 const PAYMENT_LINK_PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 const PAYMENT_LINK_URL_SCHEMA = z.url({
+  protocol: /^https?$/,
+  hostname: z.regexes.domain,
+});
+const RECEIPT_VIEW_URL_SCHEMA = z.url({
   protocol: /^https?$/,
   hostname: z.regexes.domain,
 });
@@ -58,6 +65,22 @@ const monthlyExpenseItemSchema = z.object({
     .trim()
     .refine((value) => isValidHttpPaymentLink(value))
     .transform((value) => normalizeHttpPaymentLink(value))
+    .nullable()
+    .optional(),
+  receipt: z
+    .object({
+      fileId: z.string().trim().min(1),
+      fileName: z.string().trim().min(1),
+      fileViewUrl: z
+        .string()
+        .trim()
+        .refine((value) => RECEIPT_VIEW_URL_SCHEMA.safeParse(value).success),
+      folderId: z.string().trim().min(1),
+      folderViewUrl: z
+        .string()
+        .trim()
+        .refine((value) => RECEIPT_VIEW_URL_SCHEMA.safeParse(value).success),
+    })
     .nullable()
     .optional(),
   subtotal: z.number().positive(),
@@ -254,6 +277,12 @@ export function createMonthlyExpensesApiHandler<TLoadResult, TSaveResult>({
         return response.status(500).json({
           error:
             "Database server configuration is incomplete for monthly expenses storage.",
+        });
+      }
+
+      if (error instanceof MonthlyExpenseReceiptFolderConflictError) {
+        return response.status(409).json({
+          error: error.message,
         });
       }
 

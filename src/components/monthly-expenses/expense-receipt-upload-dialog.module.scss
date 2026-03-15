@@ -1,0 +1,55 @@
+.content {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.dropzone {
+  display: grid;
+  gap: 0.45rem;
+  place-items: center;
+  padding: 1rem;
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--muted) 35%, transparent);
+  text-align: center;
+}
+
+.dropzoneActive {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.dropzoneText {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.fileInput {
+  width: 100%;
+}
+
+.selectedFile {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.supportedTypes {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+
+.errorText {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--destructive);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

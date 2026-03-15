@@ -44,6 +44,26 @@ export function getSafeMonthlyExpensesErrorMessage(error: unknown): string {
     return "No pudimos guardar los gastos porque algunos datos no son válidos. Revisá la planilla y volvé a intentarlo.";
   }
 
+  if (message.includes("A receipt folder with the requested description already exists")) {
+    return "Ya existe una carpeta de comprobantes con esa descripción. Cambiá la descripción del gasto y volvé a intentar.";
+  }
+
+  if (message.includes("A receipt folder with the same description already exists")) {
+    return "Ya existe una carpeta de comprobantes con esa descripción. Cambiá la descripción del gasto y volvé a intentar.";
+  }
+
+  if (message.includes("Monthly expense receipts support files up to 5MB")) {
+    return "El comprobante supera los 5MB permitidos. Elegí un archivo más liviano.";
+  }
+
+  if (message.includes("Monthly expense receipts only support")) {
+    return "Solo se permiten comprobantes PDF, JPG, PNG, WEBP, HEIC o HEIF.";
+  }
+
+  if (message.includes("upload monthly expense receipts")) {
+    return "No pudimos subir el comprobante en este momento. Volvé a intentarlo.";
+  }
+
   return fallbackMessage;
 }
 

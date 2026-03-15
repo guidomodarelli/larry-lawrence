@@ -1,6 +1,9 @@
 import type { drive_v3 } from "googleapis";
 
-import { VISIBLE_DRIVE_FOLDER_NAME } from "@/modules/storage/shared/visible-drive-folder-name";
+import {
+  LEGACY_VISIBLE_DRIVE_FOLDER_NAME,
+  VISIBLE_DRIVE_FOLDER_NAME,
+} from "@/modules/storage/shared/visible-drive-folder-name";
 
 import { mapGoogleDriveStorageError } from "./google-drive-storage-error";
 
@@ -20,19 +23,64 @@ export async function findVisibleDriveFolder({
   driveClient: drive_v3.Drive;
   operation: string;
 }) {
+  const canonicalFolder = await findDriveFolderByName({
+    driveClient,
+    folderName: VISIBLE_DRIVE_FOLDER_NAME,
+    operation,
+  });
+
+  if (canonicalFolder) {
+    return canonicalFolder;
+  }
+
+  const legacyFolder = await findDriveFolderByName({
+    driveClient,
+    folderName: LEGACY_VISIBLE_DRIVE_FOLDER_NAME,
+    operation,
+  });
+
+  if (!legacyFolder?.id) {
+    return null;
+  }
+
+  try {
+    const response = await driveClient.files.update({
+      fields: DRIVE_FOLDER_FIELDS,
+      fileId: legacyFolder.id,
+      requestBody: {
+        name: VISIBLE_DRIVE_FOLDER_NAME,
+      },
+    });
+
+    return response.data;
+  } catch {
+    // If renaming the legacy folder fails, continue using the legacy folder.
+    return legacyFolder;
+  }
+}
+
+async function findDriveFolderByName({
+  driveClient,
+  folderName,
+  operation,
+}: {
+  driveClient: drive_v3.Drive;
+  folderName: string;
+  operation: string;
+}) {
   try {
     const response = await driveClient.files.list({
       fields: `files(${DRIVE_FOLDER_FIELDS})`,
       orderBy: "modifiedTime desc",
       pageSize: 1,
-      q: `name = '${escapeGoogleDriveQueryValue(VISIBLE_DRIVE_FOLDER_NAME)}' and mimeType = '${DRIVE_FOLDER_MIME_TYPE}' and trashed = false`,
+      q: `name = '${escapeGoogleDriveQueryValue(folderName)}' and mimeType = '${DRIVE_FOLDER_MIME_TYPE}' and trashed = false`,
     });
 
     return response.data.files?.[0] ?? null;
   } catch (error) {
     throw mapGoogleDriveStorageError(error, {
       endpoint: DRIVE_FILES_LIST_ENDPOINT,
-      operation,
+      operation: `${operation}:findByName`,
     });
   }
 }

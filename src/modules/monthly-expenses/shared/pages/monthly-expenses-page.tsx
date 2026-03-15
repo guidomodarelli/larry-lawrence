@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { FinanceAppShell } from "@/components/finance-app-shell/finance-app-shell";
+import { ExpenseReceiptUploadDialog } from "@/components/monthly-expenses/expense-receipt-upload-dialog";
 import {
   type LenderOption,
 } from "@/components/monthly-expenses/lender-picker";
@@ -48,6 +49,9 @@ import {
   getMonthlyExpensesDocumentViaApi,
   saveMonthlyExpensesDocumentViaApi,
 } from "@/modules/monthly-expenses/infrastructure/api/monthly-expenses-api";
+import {
+  uploadMonthlyExpenseReceiptViaApi,
+} from "@/modules/monthly-expenses/infrastructure/api/monthly-expenses-receipts-api";
 import type { StorageBootstrapResult } from "@/modules/storage/application/results/storage-bootstrap";
 
 export type MonthlyExpensesPageProps = {
@@ -101,6 +105,14 @@ interface ExpenseSheetState {
   showUnsavedChangesDialog: boolean;
 }
 
+interface ExpenseReceiptUploadState {
+  error: string | null;
+  expenseDescription: string;
+  expenseId: string | null;
+  isOpen: boolean;
+  isSubmitting: boolean;
+}
+
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const PAYMENT_LINK_PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 const PAYMENT_LINK_URL_SCHEMA = z.url({
@@ -111,6 +123,25 @@ const MONTHLY_EXPENSES_TAB_KEYS = ["expenses", "lenders", "debts"] as const;
 export type MonthlyExpensesTabKey = (typeof MONTHLY_EXPENSES_TAB_KEYS)[number];
 type MonthlyExpenseCurrency = "ARS" | "USD";
 const DEFAULT_MONTHLY_EXPENSES_TAB: MonthlyExpensesTabKey = "expenses";
+const MAX_RECEIPT_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const RECEIPT_FILE_TYPE_BY_MIME_TYPE: Record<string, string> = {
+  "application/pdf": "PDF",
+  "image/heic": "HEIC",
+  "image/heif": "HEIF",
+  "image/jpeg": "JPG",
+  "image/png": "PNG",
+  "image/webp": "WEBP",
+};
+
+function createClosedExpenseReceiptUploadState(): ExpenseReceiptUploadState {
+  return {
+    error: null,
+    expenseDescription: "",
+    expenseId: null,
+    isOpen: false,
+    isSubmitting: false,
+  };
+}
 
 function normalizeHttpPaymentLink(value: string): string {
   const normalizedValue = value.trim();
@@ -130,6 +161,26 @@ function isValidHttpPaymentLink(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function getValidReceiptMimeType(file: File): string | null {
+  const normalizedMimeType = file.type.trim().toLowerCase();
+
+  return Object.hasOwn(RECEIPT_FILE_TYPE_BY_MIME_TYPE, normalizedMimeType)
+    ? normalizedMimeType
+    : null;
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const fileBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(fileBuffer);
+  let binaryContent = "";
+
+  for (const byte of bytes) {
+    binaryContent += String.fromCharCode(byte);
+  }
+
+  return window.btoa(binaryContent);
 }
 
 function isMonthlyExpensesTabKey(
@@ -201,6 +252,11 @@ function createEmptyRow(): MonthlyExpensesEditableRow {
     loanTotalInstallments: null,
     occurrencesPerMonth: "1",
     paymentLink: "",
+    receiptFileId: "",
+    receiptFileName: "",
+    receiptFileUrl: "",
+    receiptFolderId: "",
+    receiptFolderUrl: "",
     startMonth: "",
     subtotal: "",
     total: "0.00",
@@ -240,6 +296,11 @@ function toEditableRows(
       : "",
     occurrencesPerMonth: formatEditableNumber(item.occurrencesPerMonth),
     paymentLink: item.paymentLink?.trim() ?? "",
+    receiptFileId: item.receipt?.fileId ?? "",
+    receiptFileName: item.receipt?.fileName ?? "",
+    receiptFileUrl: item.receipt?.fileViewUrl ?? "",
+    receiptFolderId: item.receipt?.folderId ?? "",
+    receiptFolderUrl: item.receipt?.folderViewUrl ?? "",
     startMonth: item.loan?.startMonth ?? "",
     subtotal: formatEditableNumber(item.subtotal),
     total: item.total.toFixed(2),
@@ -493,6 +554,23 @@ function toSaveMonthlyExpensesCommand(
         : {
             paymentLink: null,
           }),
+      ...(row.receiptFileId.trim().length > 0 &&
+      row.receiptFolderId.trim().length > 0 &&
+      row.receiptFileUrl.trim().length > 0 &&
+      row.receiptFolderUrl.trim().length > 0
+        ? {
+            receipt: {
+              fileId: row.receiptFileId.trim(),
+              fileName:
+                row.receiptFileName.trim().length > 0
+                  ? row.receiptFileName.trim()
+                  : "Comprobante",
+              fileViewUrl: row.receiptFileUrl.trim(),
+              folderId: row.receiptFolderId.trim(),
+              folderViewUrl: row.receiptFolderUrl.trim(),
+            },
+          }
+        : {}),
       currency: row.currency,
       description: row.description.trim(),
       id: row.id,
@@ -614,6 +692,9 @@ export default function MonthlyExpensesPage({
   const [expenseSheetState, setExpenseSheetState] = useState<ExpenseSheetState>(
     createClosedExpenseSheetState(),
   );
+  const [expenseReceiptUploadState, setExpenseReceiptUploadState] = useState<
+    ExpenseReceiptUploadState
+  >(createClosedExpenseReceiptUploadState());
   const [isLenderCreateModalOpen, setIsLenderCreateModalOpen] = useState(false);
   const shouldIgnoreNextExpenseSheetCloseRef = useRef(false);
 
@@ -643,6 +724,7 @@ export default function MonthlyExpensesPage({
     setCopySourceMonth(initialCopyableMonths.defaultSourceMonth);
     setIsCopyingFromMonth(false);
     setExpenseSheetState(createClosedExpenseSheetState());
+    setExpenseReceiptUploadState(createClosedExpenseReceiptUploadState());
   }, [
     initialCopyableMonths.defaultSourceMonth,
     initialCopyableMonths.sourceMonths,
@@ -698,6 +780,13 @@ export default function MonthlyExpensesPage({
     updater: (currentState: ExpenseSheetState) => ExpenseSheetState,
   ) => {
     setExpenseSheetState((currentState) => updater(currentState));
+  };
+  const updateExpenseReceiptUploadState = (
+    updater: (
+      currentState: ExpenseReceiptUploadState,
+    ) => ExpenseReceiptUploadState,
+  ) => {
+    setExpenseReceiptUploadState((currentState) => updater(currentState));
   };
 
   const refreshLoansReport = async (lenders: LenderOption[] = lendersState.lenders) => {
@@ -952,6 +1041,120 @@ export default function MonthlyExpensesPage({
       originalRow: { ...row },
       showUnsavedChangesDialog: false,
     }));
+  };
+
+  const handleOpenReceiptUpload = (expenseId: string) => {
+    const row = formState.rows.find((currentRow) => currentRow.id === expenseId);
+
+    if (!row) {
+      toast.warning("No pudimos encontrar el gasto para subir el comprobante.");
+      return;
+    }
+
+    updateExpenseReceiptUploadState(() => ({
+      error: null,
+      expenseDescription: row.description,
+      expenseId,
+      isOpen: true,
+      isSubmitting: false,
+    }));
+  };
+
+  const handleCloseReceiptUpload = () => {
+    setExpenseReceiptUploadState(createClosedExpenseReceiptUploadState());
+  };
+
+  const handleUploadExpenseReceipt = async (file: File) => {
+    if (!isOAuthConfigured || !isAuthenticated) {
+      toast.warning("Conectate con Google para subir comprobantes.");
+      return;
+    }
+
+    const activeExpenseId = expenseReceiptUploadState.expenseId;
+
+    if (!activeExpenseId) {
+      updateExpenseReceiptUploadState((currentState) => ({
+        ...currentState,
+        error: "No pudimos identificar el gasto para asociar el comprobante.",
+      }));
+      return;
+    }
+
+    const expenseRow = formState.rows.find((row) => row.id === activeExpenseId);
+
+    if (!expenseRow) {
+      updateExpenseReceiptUploadState((currentState) => ({
+        ...currentState,
+        error: "No pudimos encontrar el gasto seleccionado.",
+      }));
+      return;
+    }
+
+    const receiptMimeType = getValidReceiptMimeType(file);
+
+    if (!receiptMimeType) {
+      updateExpenseReceiptUploadState((currentState) => ({
+        ...currentState,
+        error: "Solo se permiten comprobantes PDF, JPG, PNG, WEBP, HEIC o HEIF.",
+      }));
+      return;
+    }
+
+    if (file.size > MAX_RECEIPT_FILE_SIZE_BYTES) {
+      updateExpenseReceiptUploadState((currentState) => ({
+        ...currentState,
+        error: "El comprobante supera los 5MB. Elegí un archivo más liviano.",
+      }));
+      return;
+    }
+
+    updateExpenseReceiptUploadState((currentState) => ({
+      ...currentState,
+      error: null,
+      isSubmitting: true,
+    }));
+
+    try {
+      const receiptUpload = await uploadMonthlyExpenseReceiptViaApi({
+        contentBase64: await fileToBase64(file),
+        expenseDescription: expenseRow.description,
+        fileName: file.name,
+        mimeType: receiptMimeType,
+      });
+      const nextRows = formState.rows.map((row) =>
+        row.id === expenseRow.id
+          ? {
+              ...row,
+              receiptFileId: receiptUpload.fileId,
+              receiptFileName: receiptUpload.fileName,
+              receiptFileUrl: receiptUpload.fileViewUrl,
+              receiptFolderId: receiptUpload.folderId,
+              receiptFolderUrl: receiptUpload.folderViewUrl,
+            }
+          : row,
+      );
+      const wasSaved = await persistMonthlyExpensesRows(nextRows, {
+        loading: "Guardando comprobante...",
+        success: "Comprobante subido correctamente.",
+      });
+
+      if (!wasSaved) {
+        updateExpenseReceiptUploadState((currentState) => ({
+          ...currentState,
+          isSubmitting: false,
+        }));
+        return;
+      }
+
+      setExpenseReceiptUploadState(createClosedExpenseReceiptUploadState());
+    } catch (error) {
+      updateExpenseReceiptUploadState((currentState) => ({
+        ...currentState,
+        error: getSafeMonthlyExpensesErrorMessage(error),
+        isSubmitting: false,
+      }));
+      toast.error("No pudimos subir el comprobante.");
+    }
   };
 
   const handleRequestCloseExpenseSheet = () => {
@@ -1301,6 +1504,7 @@ export default function MonthlyExpensesPage({
                 onRequestCloseExpenseSheet={handleRequestCloseExpenseSheet}
                 onSaveExpense={handleSaveExpense}
                 onSaveUnsavedChanges={handleSaveUnsavedChanges}
+                onUploadReceipt={handleOpenReceiptUpload}
                 onUnsavedChangesClose={handleUnsavedChangesClose}
                 onUnsavedChangesDiscard={handleUnsavedChangesDiscard}
                 rows={formState.rows}
@@ -1335,6 +1539,15 @@ export default function MonthlyExpensesPage({
                 onTypeFilterChange={handleReportTypeFilterChange}
               />
       ) : null}
+
+      <ExpenseReceiptUploadDialog
+        errorMessage={expenseReceiptUploadState.error}
+        expenseDescription={expenseReceiptUploadState.expenseDescription}
+        isOpen={expenseReceiptUploadState.isOpen}
+        isSubmitting={expenseReceiptUploadState.isSubmitting}
+        onClose={handleCloseReceiptUpload}
+        onUpload={handleUploadExpenseReceipt}
+      />
 
       <LenderCreateDialog
         feedbackMessage={lendersFeedbackMessage}

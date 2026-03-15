@@ -57,6 +57,11 @@ interface DataTableProps<TData, TValue> {
   deselectAllColumnsLabel?: string;
 }
 
+interface DataTableColumnMeta {
+  label?: string;
+  cellClassName?: string;
+}
+
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -250,7 +255,7 @@ export function DataTable<TData, TValue>({
                       <DropdownMenuSeparator />
                       {hideableColumns.map((column) => {
                         const columnMeta = column.columnDef.meta as
-                          | { label?: string }
+                          | DataTableColumnMeta
                           | undefined;
                         const isColumnVisible = column.getIsVisible();
                         const label =
@@ -314,11 +319,17 @@ export function DataTable<TData, TValue>({
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const columnMeta = cell.column.columnDef.meta as
+                      | DataTableColumnMeta
+                      | undefined;
+
+                    return (
+                      <TableCell className={columnMeta?.cellClassName} key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : (

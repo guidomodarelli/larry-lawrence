@@ -24,6 +24,7 @@ export function toMonthlyExpensesDocumentResult(
     items: document.items.map((item) => ({
       ...item,
       ...(item.loan ? { loan: { ...item.loan } } : {}),
+      ...(item.receipt ? { receipt: { ...item.receipt } } : {}),
     })),
     month: document.month,
   };

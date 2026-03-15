@@ -4,7 +4,7 @@ import type {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ExternalLink } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Paperclip } from "lucide-react";
 import { z } from "zod";
 
 import { ExpenseRowActions } from "@/components/monthly-expenses/expense-row-actions";
@@ -67,6 +67,8 @@ const SORTABLE_COLUMN_IDS = new Set([
   "ars",
   "usd",
   "paymentLink",
+  "receiptFileUrl",
+  "receiptFolderUrl",
   LOAN_SORT_COLUMN_ID,
   "lenderName",
   LOAN_INSTALLMENT_START_COLUMN_ID,
@@ -80,6 +82,8 @@ const PERSISTABLE_COLUMN_VISIBILITY_IDS = new Set([
   "ars",
   "usd",
   "paymentLink",
+  "receiptFileUrl",
+  "receiptFolderUrl",
   LOAN_SORT_COLUMN_ID,
   "lenderName",
   LOAN_INSTALLMENT_START_COLUMN_ID,
@@ -408,6 +412,11 @@ export interface MonthlyExpensesEditableRow {
   loanTotalInstallments: number | null;
   occurrencesPerMonth: string;
   paymentLink: string;
+  receiptFileId: string;
+  receiptFileName: string;
+  receiptFileUrl: string;
+  receiptFolderId: string;
+  receiptFolderUrl: string;
   startMonth: string;
   subtotal: string;
   total: string;
@@ -450,6 +459,7 @@ interface MonthlyExpensesTableProps {
   onExpenseLenderSelect: (lenderId: string | null) => void;
   onExpenseLoanToggle: (checked: boolean) => void;
   onMonthChange: (value: string) => void;
+  onUploadReceipt: (expenseId: string) => void;
   onRequestCloseExpenseSheet: () => void;
   onSaveExpense: () => void;
   onSaveUnsavedChanges: () => void;
@@ -664,6 +674,10 @@ function getConvertedTotalAmount({
 }
 
 function getValidPaymentLink(value: string): string | null {
+  return getValidHttpUrl(value);
+}
+
+function getValidHttpUrl(value: string): string | null {
   const normalizedValue = value.trim();
 
   if (!normalizedValue) {
@@ -708,6 +722,7 @@ export function MonthlyExpensesTable({
   onExpenseLenderSelect,
   onExpenseLoanToggle,
   onMonthChange,
+  onUploadReceipt,
   onRequestCloseExpenseSheet,
   onSaveExpense,
   onSaveUnsavedChanges,
@@ -966,6 +981,100 @@ export function MonthlyExpensesTable({
         },
       },
       {
+        accessorKey: "receiptFileUrl",
+        cell: ({ row }) => {
+          const receiptFileUrl = getValidHttpUrl(row.original.receiptFileUrl);
+
+          if (receiptFileUrl) {
+            return (
+              <div className={styles.receiptCellContent}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      className={styles.paymentLinkAction}
+                      href={receiptFileUrl}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      Ver comprobante
+                      <ExternalLink aria-hidden="true" className={styles.paymentLinkIcon} />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent>Abrir comprobante en Drive</TooltipContent>
+                </Tooltip>
+              </div>
+            );
+          }
+
+          return (
+            <div className={styles.receiptCellContent}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label="Adjuntar comprobante"
+                    disabled={actionDisabled}
+                    onClick={() => onUploadReceipt(row.original.id)}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Paperclip aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Adjuntar comprobante</TooltipContent>
+              </Tooltip>
+            </div>
+          );
+        },
+        header: getSortableHeader("Comprobante"),
+        meta: { label: "Comprobante" },
+        sortingFn: (rowA, rowB) => {
+          const leftHasReceipt =
+            getValidHttpUrl(rowA.original.receiptFileUrl) != null ? 1 : 0;
+          const rightHasReceipt =
+            getValidHttpUrl(rowB.original.receiptFileUrl) != null ? 1 : 0;
+
+          return leftHasReceipt - rightHasReceipt;
+        },
+      },
+      {
+        accessorKey: "receiptFolderUrl",
+        cell: ({ row }) => {
+          const receiptFolderUrl = getValidHttpUrl(row.original.receiptFolderUrl);
+
+          if (!receiptFolderUrl) {
+            return "-";
+          }
+
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  className={styles.paymentLinkAction}
+                  href={receiptFolderUrl}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Ver carpeta
+                  <ExternalLink aria-hidden="true" className={styles.paymentLinkIcon} />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>Abrir carpeta de comprobantes en Drive</TooltipContent>
+            </Tooltip>
+          );
+        },
+        header: getSortableHeader("Carpeta de comprobantes"),
+        meta: { label: "Carpeta de comprobantes" },
+        sortingFn: (rowA, rowB) => {
+          const leftHasFolder =
+            getValidHttpUrl(rowA.original.receiptFolderUrl) != null ? 1 : 0;
+          const rightHasFolder =
+            getValidHttpUrl(rowB.original.receiptFolderUrl) != null ? 1 : 0;
+
+          return leftHasFolder - rightHasFolder;
+        },
+      },
+      {
         accessorKey: "loanProgress",
         cell: ({ row }) =>
           row.original.isLoan
@@ -1178,6 +1287,7 @@ export function MonthlyExpensesTable({
       loanSortMode,
       onDeleteExpense,
       onEditExpense,
+      onUploadReceipt,
     ],
   );
 

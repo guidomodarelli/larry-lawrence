@@ -6,6 +6,10 @@ const PAYMENT_LINK_URL_SCHEMA = z.url({
   protocol: /^https?$/,
   hostname: z.regexes.domain,
 });
+const RECEIPT_VIEW_URL_SCHEMA = z.url({
+  protocol: /^https?$/,
+  hostname: z.regexes.domain,
+});
 
 export const MONTHLY_EXPENSE_CURRENCIES = ["ARS", "USD"] as const;
 
@@ -24,6 +28,16 @@ export interface MonthlyExpenseLoan extends MonthlyExpenseLoanInput {
   paidInstallments: number;
 }
 
+export interface MonthlyExpenseReceiptInput {
+  fileId: string;
+  fileName: string;
+  fileViewUrl: string;
+  folderId: string;
+  folderViewUrl: string;
+}
+
+export type MonthlyExpenseReceipt = MonthlyExpenseReceiptInput;
+
 export interface MonthlyExpenseItemInput {
   currency: MonthlyExpenseCurrency;
   description: string;
@@ -31,12 +45,14 @@ export interface MonthlyExpenseItemInput {
   loan?: MonthlyExpenseLoanInput;
   occurrencesPerMonth: number;
   paymentLink?: string | null;
+  receipt?: MonthlyExpenseReceiptInput | null;
   subtotal: number;
 }
 
 export interface MonthlyExpenseItem extends MonthlyExpenseItemInput {
   loan?: MonthlyExpenseLoan;
   paymentLink?: string | null;
+  receipt?: MonthlyExpenseReceipt;
   total: number;
 }
 
@@ -241,18 +257,62 @@ function validatePaymentLink(
   }
 }
 
+function validateReceipt(
+  receipt: MonthlyExpenseReceiptInput | null | undefined,
+  operationName: string,
+): MonthlyExpenseReceipt | null {
+  if (receipt == null) {
+    return null;
+  }
+
+  const normalizedReceipt = {
+    fileId: receipt.fileId.trim(),
+    fileName: receipt.fileName.trim(),
+    fileViewUrl: receipt.fileViewUrl.trim(),
+    folderId: receipt.folderId.trim(),
+    folderViewUrl: receipt.folderViewUrl.trim(),
+  };
+
+  if (
+    !normalizedReceipt.fileId ||
+    !normalizedReceipt.fileName ||
+    !normalizedReceipt.folderId
+  ) {
+    throw new Error(
+      `${operationName} requires every receipt to include file and folder identifiers.`,
+    );
+  }
+
+  try {
+    return {
+      ...normalizedReceipt,
+      fileViewUrl: RECEIPT_VIEW_URL_SCHEMA.parse(
+        normalizedReceipt.fileViewUrl,
+      ),
+      folderViewUrl: RECEIPT_VIEW_URL_SCHEMA.parse(
+        normalizedReceipt.folderViewUrl,
+      ),
+    };
+  } catch {
+    throw new Error(
+      `${operationName} requires every receipt to include valid Drive URLs.`,
+    );
+  }
+}
+
 function validateItem(
   item: MonthlyExpenseItemInput,
   operationName: string,
   targetMonth: string,
 ): MonthlyExpenseItem {
-  const { loan, paymentLink, ...rawItem } = item;
+  const { loan, paymentLink, receipt, ...rawItem } = item;
   const normalizedItem = {
     ...rawItem,
     description: item.description.trim(),
     id: item.id.trim(),
   };
   const normalizedPaymentLink = validatePaymentLink(paymentLink, operationName);
+  const normalizedReceipt = validateReceipt(receipt, operationName);
 
   if (!normalizedItem.id) {
     throw new Error(
@@ -282,6 +342,7 @@ function validateItem(
     ...normalizedItem,
     ...(loan ? { loan: validateLoan(loan, operationName, targetMonth) } : {}),
     paymentLink: normalizedPaymentLink,
+    ...(normalizedReceipt ? { receipt: normalizedReceipt } : {}),
     total: calculateMonthlyExpenseTotal(normalizedItem),
   };
 }
@@ -388,6 +449,17 @@ export function toMonthlyExpensesDocumentInput(
         : {}),
       occurrencesPerMonth: item.occurrencesPerMonth,
       paymentLink: item.paymentLink,
+      ...(item.receipt
+        ? {
+            receipt: {
+              fileId: item.receipt.fileId,
+              fileName: item.receipt.fileName,
+              fileViewUrl: item.receipt.fileViewUrl,
+              folderId: item.receipt.folderId,
+              folderViewUrl: item.receipt.folderViewUrl,
+            },
+          }
+        : {}),
       subtotal: item.subtotal,
     })),
     month: document.month,
