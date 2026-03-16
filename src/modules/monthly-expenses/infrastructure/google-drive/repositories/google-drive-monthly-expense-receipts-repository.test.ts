@@ -215,6 +215,32 @@ describe("GoogleDriveMonthlyExpenseReceiptsRepository", () => {
     });
   });
 
+  it("renames an uploaded receipt file", async () => {
+    const { driveClient, files } = createDriveClientMock();
+
+    files.update.mockResolvedValueOnce({
+      data: {
+        id: "receipt-file-id",
+        name: "2026-03-16 - Internet - cubre 2 pagos.pdf",
+      },
+    });
+
+    const repository = new GoogleDriveMonthlyExpenseReceiptsRepository(driveClient);
+
+    await repository.renameReceiptFile({
+      fileId: "receipt-file-id",
+      nextFileName: "2026-03-16 - Internet - cubre 2 pagos.pdf",
+    });
+
+    expect(files.update).toHaveBeenCalledWith({
+      fields: "id,name,mimeType,parents,webViewLink",
+      fileId: "receipt-file-id",
+      requestBody: {
+        name: "2026-03-16 - Internet - cubre 2 pagos.pdf",
+      },
+    });
+  });
+
   it("returns missing status when receipt resources no longer exist", async () => {
     const { driveClient, files } = createDriveClientMock();
 

@@ -6,6 +6,7 @@ describe("uploadMonthlyExpenseReceipt", () => {
     const repository: MonthlyExpenseReceiptsRepository = {
       deleteReceipt: jest.fn(),
       renameExpenseFolder: jest.fn(),
+      renameReceiptFile: jest.fn(),
       saveReceipt: jest.fn().mockResolvedValue({
         allReceiptsFolderId: "all-receipts-folder-id",
         allReceiptsFolderViewUrl:
@@ -57,6 +58,7 @@ describe("uploadMonthlyExpenseReceipt", () => {
     const repository: MonthlyExpenseReceiptsRepository = {
       deleteReceipt: jest.fn(),
       renameExpenseFolder: jest.fn(),
+      renameReceiptFile: jest.fn(),
       saveReceipt: jest.fn(),
       verifyFolders: jest.fn(),
       verifyReceipt: jest.fn(),
@@ -82,6 +84,7 @@ describe("uploadMonthlyExpenseReceipt", () => {
     const repository: MonthlyExpenseReceiptsRepository = {
       deleteReceipt: jest.fn(),
       renameExpenseFolder: jest.fn(),
+      renameReceiptFile: jest.fn(),
       saveReceipt: jest.fn(),
       verifyFolders: jest.fn(),
       verifyReceipt: jest.fn(),
@@ -102,5 +105,91 @@ describe("uploadMonthlyExpenseReceipt", () => {
     ).rejects.toThrow(
       "Monthly expense receipts require covered payments greater than 0.",
     );
+  });
+
+  it("formats receipt file name on upload preserving the original extension", async () => {
+    const repository: MonthlyExpenseReceiptsRepository = {
+      deleteReceipt: jest.fn(),
+      renameExpenseFolder: jest.fn(),
+      renameReceiptFile: jest.fn(),
+      saveReceipt: jest.fn().mockImplementation(async (input) => ({
+        allReceiptsFolderId: "all-receipts-folder-id",
+        allReceiptsFolderViewUrl:
+          "https://drive.google.com/drive/folders/all-receipts-folder-id",
+        coveredPayments: input.coveredPayments,
+        fileId: "receipt-file-id",
+        fileName: input.fileName,
+        fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+        monthlyFolderId: "receipt-folder-id",
+        monthlyFolderViewUrl:
+          "https://drive.google.com/drive/folders/receipt-folder-id",
+      })),
+      verifyFolders: jest.fn(),
+      verifyReceipt: jest.fn(),
+    };
+
+    const result = await uploadMonthlyExpenseReceipt({
+      command: {
+        contentBase64: "dGVzdA==",
+        coveredPayments: 2,
+        expenseDescription: "Alquiler departamento",
+        fileName: "comprobante-original.PDF",
+        month: "2026-03",
+        mimeType: "application/pdf",
+      },
+      now: new Date("2026-03-16T12:10:00.000Z"),
+      repository,
+    });
+
+    expect(repository.saveReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fileName: "2026-03-16 - Alquiler departamento - cubre 2 pagos.PDF",
+      }),
+    );
+    expect(result.fileName).toBe(
+      "2026-03-16 - Alquiler departamento - cubre 2 pagos.PDF",
+    );
+  });
+
+  it("formats receipt file name on upload without adding an extension when missing", async () => {
+    const repository: MonthlyExpenseReceiptsRepository = {
+      deleteReceipt: jest.fn(),
+      renameExpenseFolder: jest.fn(),
+      renameReceiptFile: jest.fn(),
+      saveReceipt: jest.fn().mockImplementation(async (input) => ({
+        allReceiptsFolderId: "all-receipts-folder-id",
+        allReceiptsFolderViewUrl:
+          "https://drive.google.com/drive/folders/all-receipts-folder-id",
+        coveredPayments: input.coveredPayments,
+        fileId: "receipt-file-id",
+        fileName: input.fileName,
+        fileViewUrl: "https://drive.google.com/file/d/receipt-file-id/view",
+        monthlyFolderId: "receipt-folder-id",
+        monthlyFolderViewUrl:
+          "https://drive.google.com/drive/folders/receipt-folder-id",
+      })),
+      verifyFolders: jest.fn(),
+      verifyReceipt: jest.fn(),
+    };
+
+    const result = await uploadMonthlyExpenseReceipt({
+      command: {
+        contentBase64: "dGVzdA==",
+        coveredPayments: 1,
+        expenseDescription: "Internet",
+        fileName: "comprobante",
+        month: "2026-03",
+        mimeType: "application/pdf",
+      },
+      now: new Date("2026-03-16T12:10:00.000Z"),
+      repository,
+    });
+
+    expect(repository.saveReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fileName: "2026-03-16 - Internet - cubre 1 pagos",
+      }),
+    );
+    expect(result.fileName).toBe("2026-03-16 - Internet - cubre 1 pagos");
   });
 });

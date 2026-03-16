@@ -6,6 +6,7 @@ describe("deleteMonthlyExpenseReceipt", () => {
     const repository: MonthlyExpenseReceiptsRepository = {
       deleteReceipt: jest.fn().mockResolvedValue(undefined),
       renameExpenseFolder: jest.fn(),
+      renameReceiptFile: jest.fn(),
       saveReceipt: jest.fn(),
       verifyFolders: jest.fn(),
       verifyReceipt: jest.fn(),
@@ -27,6 +28,7 @@ describe("deleteMonthlyExpenseReceipt", () => {
     const repository: MonthlyExpenseReceiptsRepository = {
       deleteReceipt: jest.fn(),
       renameExpenseFolder: jest.fn(),
+      renameReceiptFile: jest.fn(),
       saveReceipt: jest.fn(),
       verifyFolders: jest.fn(),
       verifyReceipt: jest.fn(),

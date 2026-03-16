@@ -108,6 +108,7 @@ describe("getMonthlyExpensesDocument", () => {
     const receiptsRepository: MonthlyExpenseReceiptsRepository = {
       deleteReceipt: jest.fn(),
       renameExpenseFolder: jest.fn(),
+      renameReceiptFile: jest.fn(),
       saveReceipt: jest.fn(),
       verifyFolders: jest.fn().mockResolvedValue({
         allReceiptsFolderStatus: "missing",

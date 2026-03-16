@@ -51,12 +51,20 @@ export interface RenameMonthlyExpenseReceiptFolderInput {
   nextDescription: string;
 }
 
+export interface RenameMonthlyExpenseReceiptFileInput {
+  fileId: string;
+  nextFileName: string;
+}
+
 export interface MonthlyExpenseReceiptsRepository {
   deleteReceipt(
     input: DeleteMonthlyExpenseReceiptInput,
   ): Promise<void>;
   renameExpenseFolder(
     input: RenameMonthlyExpenseReceiptFolderInput,
+  ): Promise<void>;
+  renameReceiptFile(
+    input: RenameMonthlyExpenseReceiptFileInput,
   ): Promise<void>;
   saveReceipt(
     input: MonthlyExpenseReceiptUploadInput,

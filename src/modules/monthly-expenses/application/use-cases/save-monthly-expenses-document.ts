@@ -11,6 +11,10 @@ import {
   toStoredMonthlyExpensesDocumentResult,
   type StoredMonthlyExpensesDocumentResult,
 } from "../results/stored-monthly-expenses-document-result";
+import {
+  buildMonthlyExpenseReceiptFileName,
+  getReceiptFileNameDatePrefix,
+} from "./monthly-expense-receipt-file-name";
 import type { MonthlyExchangeRateSnapshot } from "@/modules/exchange-rates/domain/entities/monthly-exchange-rate-snapshot";
 
 interface SaveMonthlyExpensesDocumentDependencies {
@@ -18,6 +22,7 @@ interface SaveMonthlyExpensesDocumentDependencies {
   getExchangeRateSnapshot: (
     month: string,
   ) => Promise<MonthlyExchangeRateSnapshot>;
+  now?: Date;
   receiptsRepository?: MonthlyExpenseReceiptsRepository;
   repository: MonthlyExpensesRepository;
 }
@@ -90,9 +95,96 @@ async function syncReceiptFolderRenames({
   }
 }
 
+async function syncReceiptFileRenames({
+  currentDocument,
+  nextDocument,
+  now,
+  receiptsRepository,
+}: {
+  currentDocument: MonthlyExpensesDocument;
+  nextDocument: MonthlyExpensesDocument;
+  now: Date;
+  receiptsRepository: MonthlyExpenseReceiptsRepository;
+}): Promise<MonthlyExpensesDocument> {
+  const currentItemsById = new Map(
+    currentDocument.items.map((item) => [item.id, item]),
+  );
+
+  const renamedItems = await Promise.all(
+    nextDocument.items.map(async (nextItem) => {
+      const currentItem = currentItemsById.get(nextItem.id);
+
+      if (!currentItem || nextItem.receipts.length === 0) {
+        return nextItem;
+      }
+
+      const isDescriptionChanged = currentItem.description !== nextItem.description;
+      const currentReceiptsByFileId = new Map(
+        currentItem.receipts.map((receipt) => [receipt.fileId, receipt]),
+      );
+      const renamedReceipts = await Promise.all(
+        nextItem.receipts.map(async (nextReceipt) => {
+          const currentReceipt = currentReceiptsByFileId.get(nextReceipt.fileId);
+
+          if (!currentReceipt) {
+            return nextReceipt;
+          }
+
+          const currentCoveredPayments = currentReceipt.coveredPayments ?? 1;
+          const nextCoveredPayments = nextReceipt.coveredPayments ?? 1;
+
+          if (!isDescriptionChanged && currentCoveredPayments === nextCoveredPayments) {
+            return nextReceipt;
+          }
+
+          const preferredDatePrefix =
+            getReceiptFileNameDatePrefix(currentReceipt.fileName) ??
+            getReceiptFileNameDatePrefix(nextReceipt.fileName) ??
+            undefined;
+          const nextFileName = buildMonthlyExpenseReceiptFileName({
+            coveredPayments: nextCoveredPayments,
+            date: now,
+            expenseDescription: nextItem.description,
+            originalFileName: currentReceipt.fileName,
+            preferredDatePrefix,
+          });
+
+          if (nextFileName === currentReceipt.fileName) {
+            return {
+              ...nextReceipt,
+              fileName: nextFileName,
+            };
+          }
+
+          await receiptsRepository.renameReceiptFile({
+            fileId: nextReceipt.fileId,
+            nextFileName,
+          });
+
+          return {
+            ...nextReceipt,
+            fileName: nextFileName,
+          };
+        }),
+      );
+
+      return {
+        ...nextItem,
+        receipts: renamedReceipts,
+      };
+    }),
+  );
+
+  return {
+    ...nextDocument,
+    items: renamedItems,
+  };
+}
+
 export async function saveMonthlyExpensesDocument({
   command,
   getExchangeRateSnapshot,
+  now = new Date(),
   receiptsRepository,
   repository,
 }: SaveMonthlyExpensesDocumentDependencies): Promise<StoredMonthlyExpensesDocumentResult> {
@@ -121,15 +213,24 @@ export async function saveMonthlyExpensesDocument({
 
   validateCoverageConsistency(validatedDocument);
 
+  let documentToSave = validatedDocument;
+
   if (currentDocument && receiptsRepository) {
     await syncReceiptFolderRenames({
       currentDocument,
-      nextDocument: validatedDocument,
+      nextDocument: documentToSave,
+      receiptsRepository,
+    });
+
+    documentToSave = await syncReceiptFileRenames({
+      currentDocument,
+      nextDocument: documentToSave,
+      now,
       receiptsRepository,
     });
   }
 
   return toStoredMonthlyExpensesDocumentResult(
-    await repository.save(validatedDocument),
+    await repository.save(documentToSave),
   );
 }

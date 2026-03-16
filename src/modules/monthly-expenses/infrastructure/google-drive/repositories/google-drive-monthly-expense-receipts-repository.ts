@@ -20,6 +20,7 @@ import type {
   MonthlyExpenseReceiptsRepository,
   MonthlyExpenseReceiptUploadInput,
   RenameMonthlyExpenseReceiptFolderInput,
+  RenameMonthlyExpenseReceiptFileInput,
   VerifyMonthlyExpenseFoldersInput,
   VerifyMonthlyExpenseReceiptInput,
 } from "../../../domain/repositories/monthly-expense-receipts-repository";
@@ -307,6 +308,35 @@ export class GoogleDriveMonthlyExpenseReceiptsRepository
         endpoint: DRIVE_FILES_UPDATE_ENDPOINT,
         operation:
           "google-drive-monthly-expense-receipts-repository:renameExpenseFolder",
+      });
+    }
+  }
+
+  async renameReceiptFile(
+    input: RenameMonthlyExpenseReceiptFileInput,
+  ): Promise<void> {
+    const normalizedFileId = input.fileId.trim();
+    const normalizedFileName = input.nextFileName.trim();
+
+    if (!normalizedFileId || !normalizedFileName) {
+      throw new Error(
+        "google-drive-monthly-expense-receipts-repository:renameReceiptFile requires a file id and file name.",
+      );
+    }
+
+    try {
+      await this.driveClient.files.update({
+        fields: DRIVE_FILE_FIELDS,
+        fileId: normalizedFileId,
+        requestBody: {
+          name: normalizedFileName,
+        },
+      });
+    } catch (error) {
+      throw mapGoogleDriveStorageError(error, {
+        endpoint: DRIVE_FILES_UPDATE_ENDPOINT,
+        operation:
+          "google-drive-monthly-expense-receipts-repository:renameReceiptFile",
       });
     }
   }

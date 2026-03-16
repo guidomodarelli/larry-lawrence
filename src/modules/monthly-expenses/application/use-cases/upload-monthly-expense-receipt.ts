@@ -4,6 +4,9 @@ import {
   type MonthlyExpenseReceiptResult,
 } from "../results/monthly-expense-receipt-result";
 import type { MonthlyExpenseReceiptsRepository } from "../../domain/repositories/monthly-expense-receipts-repository";
+import {
+  buildMonthlyExpenseReceiptFileName,
+} from "./monthly-expense-receipt-file-name";
 
 const MAX_RECEIPT_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -105,16 +108,27 @@ function validateReceiptCommand(
 
 interface UploadMonthlyExpenseReceiptDependencies {
   command: UploadMonthlyExpenseReceiptCommand;
+  now?: Date;
   repository: MonthlyExpenseReceiptsRepository;
 }
 
 export async function uploadMonthlyExpenseReceipt({
   command,
+  now = new Date(),
   repository,
 }: UploadMonthlyExpenseReceiptDependencies): Promise<MonthlyExpenseReceiptResult> {
   const validatedCommand = validateReceiptCommand(command);
+  const formattedFileName = buildMonthlyExpenseReceiptFileName({
+    coveredPayments: validatedCommand.coveredPayments,
+    date: now,
+    expenseDescription: validatedCommand.expenseDescription,
+    originalFileName: validatedCommand.fileName,
+  });
 
   return toMonthlyExpenseReceiptResult(
-    await repository.saveReceipt(validatedCommand),
+    await repository.saveReceipt({
+      ...validatedCommand,
+      fileName: formattedFileName,
+    }),
   );
 }
