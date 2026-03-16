@@ -118,6 +118,7 @@ interface ExpenseReceiptUploadState {
   isSubmitting: boolean;
   manualCoveredPayments: number;
   occurrencesPerMonth: number;
+  uploadProgressPercent: number;
 }
 
 interface ExpenseReceiptCoverageEditState {
@@ -143,6 +144,8 @@ export type MonthlyExpensesTabKey = (typeof MONTHLY_EXPENSES_TAB_KEYS)[number];
 type MonthlyExpenseCurrency = "ARS" | "USD";
 const DEFAULT_MONTHLY_EXPENSES_TAB: MonthlyExpensesTabKey = "expenses";
 const MAX_RECEIPT_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const RECEIPT_READ_PROGRESS_WEIGHT = 0.35;
+const RECEIPT_UPLOAD_PROGRESS_WEIGHT = 0.65;
 const RECEIPT_FILE_TYPE_BY_MIME_TYPE: Record<string, string> = {
   "application/pdf": "PDF",
   "image/heic": "HEIC",
@@ -162,6 +165,7 @@ function createClosedExpenseReceiptUploadState(): ExpenseReceiptUploadState {
     isSubmitting: false,
     manualCoveredPayments: 0,
     occurrencesPerMonth: 1,
+    uploadProgressPercent: 0,
   };
 }
 
@@ -207,16 +211,58 @@ function getValidReceiptMimeType(file: File): string | null {
     : null;
 }
 
-async function fileToBase64(file: File): Promise<string> {
-  const fileBuffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(fileBuffer);
-  let binaryContent = "";
-
-  for (const byte of bytes) {
-    binaryContent += String.fromCharCode(byte);
+function clampProgressPercent(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
   }
 
-  return window.btoa(binaryContent);
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+async function fileToBase64WithProgress(
+  file: File,
+  onProgress: (percent: number) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+
+    fileReader.onerror = () => {
+      reject(
+        new Error("monthly-expenses-page:fileToBase64WithProgress failed to read file."),
+      );
+    };
+
+    fileReader.onprogress = (event) => {
+      if (!event.lengthComputable || event.total <= 0) {
+        return;
+      }
+
+      onProgress(clampProgressPercent((event.loaded / event.total) * 100));
+    };
+
+    fileReader.onload = () => {
+      if (typeof fileReader.result !== "string") {
+        reject(
+          new Error("monthly-expenses-page:fileToBase64WithProgress received invalid reader result."),
+        );
+        return;
+      }
+
+      const base64Content = fileReader.result.split(",", 2)[1] ?? "";
+
+      if (base64Content.length === 0) {
+        reject(
+          new Error("monthly-expenses-page:fileToBase64WithProgress produced an empty payload."),
+        );
+        return;
+      }
+
+      onProgress(100);
+      resolve(base64Content);
+    };
+
+    fileReader.readAsDataURL(file);
+  });
 }
 
 function isMonthlyExpensesTabKey(
@@ -1285,6 +1331,7 @@ export default function MonthlyExpensesPage({
       isSubmitting: false,
       manualCoveredPayments: Number(row.manualCoveredPayments) || 0,
       occurrencesPerMonth: Number(row.occurrencesPerMonth) || 1,
+      uploadProgressPercent: 0,
     }));
   };
 
@@ -1368,17 +1415,43 @@ export default function MonthlyExpensesPage({
       ...currentState,
       error: null,
       isSubmitting: true,
+      uploadProgressPercent: 0,
     }));
 
     try {
+      const contentBase64 = await fileToBase64WithProgress(file, (readProgress) => {
+        updateExpenseReceiptUploadState((currentState) => ({
+          ...currentState,
+          uploadProgressPercent: clampProgressPercent(
+            readProgress * RECEIPT_READ_PROGRESS_WEIGHT,
+          ),
+        }));
+      });
+
       const receiptUpload = await uploadMonthlyExpenseReceiptViaApi({
-        contentBase64: await fileToBase64(file),
+        contentBase64,
         coveredPayments,
         expenseDescription: expenseRow.description,
         fileName: file.name,
         month: formState.month,
         mimeType: receiptMimeType,
+      }, {
+        onUploadProgress: (uploadProgress) => {
+          updateExpenseReceiptUploadState((currentState) => ({
+            ...currentState,
+            uploadProgressPercent: clampProgressPercent(
+              100 * RECEIPT_READ_PROGRESS_WEIGHT +
+                uploadProgress * RECEIPT_UPLOAD_PROGRESS_WEIGHT,
+            ),
+          }));
+        },
       });
+
+      updateExpenseReceiptUploadState((currentState) => ({
+        ...currentState,
+        uploadProgressPercent: 100,
+      }));
+
       const nextRows = formState.rows.map((row) =>
         row.id === expenseRow.id
           ? {
@@ -2169,6 +2242,7 @@ export default function MonthlyExpensesPage({
         expenseDescription={expenseReceiptUploadState.expenseDescription}
         isOpen={expenseReceiptUploadState.isOpen}
         isSubmitting={expenseReceiptUploadState.isSubmitting}
+        uploadProgressPercent={expenseReceiptUploadState.uploadProgressPercent}
         onClose={handleCloseReceiptUpload}
         onUpload={handleUploadExpenseReceipt}
       />

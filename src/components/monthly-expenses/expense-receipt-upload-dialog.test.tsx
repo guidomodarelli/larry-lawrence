@@ -21,6 +21,7 @@ function renderExpenseReceiptUploadDialog(overrides: Partial<DialogProps> = {}) 
     expenseDescription: "Internet",
     isOpen: true,
     isSubmitting: false,
+    uploadProgressPercent: 0,
     onClose: jest.fn(),
     onUpload,
     ...overrides,
@@ -174,5 +175,27 @@ describe("ExpenseReceiptUploadDialog", () => {
       coveredPayments: 1,
       file,
     });
+  });
+
+  it("shows live upload progress percentage while submitting", async () => {
+    const user = userEvent.setup();
+
+    renderExpenseReceiptUploadDialog({
+      isSubmitting: true,
+      uploadProgressPercent: 73,
+    });
+
+    const file = new File(["invoice"], "factura.pdf", {
+      type: "application/pdf",
+    });
+    const fileInput = document.querySelector('input[type="file"]');
+
+    if (!(fileInput instanceof HTMLInputElement)) {
+      throw new Error("File input not found");
+    }
+
+    await user.upload(fileInput, file);
+
+    expect(screen.getByText("Subiendo... 73%")).toBeInTheDocument();
   });
 });

@@ -45,6 +45,7 @@ interface ExpenseReceiptUploadDialogProps {
   expenseDescription: string;
   isOpen: boolean;
   isSubmitting: boolean;
+  uploadProgressPercent: number;
   onClose: () => void;
   onUpload: (args: { coveredPayments: number; file: File }) => Promise<void>;
 }
@@ -96,6 +97,7 @@ export function ExpenseReceiptUploadDialog({
   expenseDescription,
   isOpen,
   isSubmitting,
+  uploadProgressPercent,
   onClose,
   onUpload,
 }: ExpenseReceiptUploadDialogProps) {
@@ -138,7 +140,17 @@ export function ExpenseReceiptUploadDialog({
       : errorMessage
         ? "error"
         : "ready";
-  const uploadProgress = selectedFileStatus === "uploading" ? 55 : 100;
+  const normalizedUploadProgressPercent = Math.min(
+    100,
+    Math.max(0, Math.round(uploadProgressPercent)),
+  );
+  const uploadProgress = selectedFileStatus === "uploading"
+    ? normalizedUploadProgressPercent
+    : selectedFileStatus === "error"
+      ? normalizedUploadProgressPercent
+      : selectedFile
+        ? 100
+        : 0;
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -281,7 +293,9 @@ export function ExpenseReceiptUploadDialog({
                       {selectedFileStatus === "error" ? (
                         <CircleAlert aria-hidden="true" />
                       ) : null}
-                      {selectedFileStatus === "uploading" ? "Subiendo..." : null}
+                      {selectedFileStatus === "uploading"
+                        ? `Subiendo... ${normalizedUploadProgressPercent}%`
+                        : null}
                       {selectedFileStatus === "ready" ? "Listo para subir" : null}
                       {selectedFileStatus === "error" ? "Error en la carga" : null}
                     </span>
