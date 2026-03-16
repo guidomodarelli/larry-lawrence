@@ -18,6 +18,13 @@
   letter-spacing: -0.02em;
 }
 
+.topBarStickySentinel {
+  position: relative;
+  block-size: 1px;
+  margin-top: -1px;
+  pointer-events: none;
+}
+
 .topBar {
   display: flex;
   align-items: center;
@@ -26,10 +33,16 @@
   position: sticky;
   top: 0;
   z-index: 20;
+  margin-block: 0;
   margin-inline: -1.25rem;
   padding: 0.35rem 1.25rem;
   background: color-mix(in srgb, var(--background) 92%, transparent 8%);
   backdrop-filter: blur(6px);
+  transition: margin-block 0.2s ease;
+}
+
+.topBarStuck {
+  padding-block: 0.65rem;
 }
 
 .mobileSidebarTrigger {
