@@ -174,17 +174,44 @@ export function MonthlyExpensesLoansReport({
                 </div>
                 <p className={styles.entryAmount}>{formatArsAmount(entry.remainingAmount)}</p>
               </div>
-              <p className={styles.entryBody}>
-                Inicio más antiguo: {entry.firstDebtMonth ?? "Sin dato"}. Último
-                mes registrado: {entry.latestRecordedMonth ?? "Sin dato"}.
-              </p>
-              <p className={styles.entryBody}>
-                Deudas activas: {entry.activeLoanCount}. Deudas registradas:{" "}
-                {entry.trackedLoanCount}.
-              </p>
-              <p className={styles.entryBody}>
-                Gastos asociados: {entry.expenseDescriptions.join(", ")}.
-              </p>
+              <div className={styles.entryTimeline}>
+                <div className={styles.entryTimelineItem}>
+                  <p className={styles.entryTimelineLabel}>Inicio más antiguo</p>
+                  <p className={styles.entryTimelineValue}>
+                    {entry.firstDebtMonth ?? "Sin dato"}
+                  </p>
+                </div>
+                <div className={styles.entryTimelineItem}>
+                  <p className={styles.entryTimelineLabel}>Último mes registrado</p>
+                  <p className={styles.entryTimelineValue}>
+                    {entry.latestRecordedMonth ?? "Sin dato"}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.entryTimeline}>
+                <div className={styles.entryTimelineItem}>
+                  <p className={styles.entryTimelineLabel}>Deudas activas</p>
+                  <p className={styles.entryTimelineValue}>{entry.activeLoanCount}</p>
+                </div>
+                <div className={styles.entryTimelineItem}>
+                  <p className={styles.entryTimelineLabel}>Deudas registradas</p>
+                  <p className={styles.entryTimelineValue}>{entry.trackedLoanCount}</p>
+                </div>
+              </div>
+              <div className={styles.entryExpenses}>
+                <p className={styles.entryExpensesLabel}>Gastos asociados</p>
+                <div className={styles.entryExpenseBadges}>
+                  {entry.expenseDescriptions.length > 0 ? (
+                    entry.expenseDescriptions.map((description, index) => (
+                      <span className={styles.entryExpenseBadge} key={`${description}-${index}`}>
+                        {description}
+                      </span>
+                    ))
+                  ) : (
+                    <span className={styles.entryExpenseEmpty}>Sin gastos asociados</span>
+                  )}
+                </div>
+              </div>
             </article>
           ))
         ) : feedbackMessage ? null : (
