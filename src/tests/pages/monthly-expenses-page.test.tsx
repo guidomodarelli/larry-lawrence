@@ -4806,6 +4806,63 @@ describe("MonthlyExpensesPage", () => {
     );
   });
 
+  it("opens debt sorting popover only when clicking the arrow button", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [
+            {
+              currency: "ARS",
+              description: "Prestamo 1",
+              id: "expense-1",
+              loan: {
+                endMonth: "2026-12",
+                installmentCount: 12,
+                paidInstallments: 3,
+                startMonth: "2026-01",
+              },
+              occurrencesPerMonth: 1,
+              subtotal: 100,
+              total: 100,
+            },
+            {
+              currency: "ARS",
+              description: "Sin deuda",
+              id: "expense-2",
+              occurrencesPerMonth: 1,
+              subtotal: 100,
+              total: 100,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByText("Deuda / cuotas"));
+
+    expect(
+      screen.queryByRole("radiogroup", {
+        name: "Criterio de orden para Deuda / cuotas",
+      }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Ordenar Deuda / cuotas",
+      }),
+    );
+
+    expect(
+      screen.getByRole("radiogroup", {
+        name: "Criterio de orden para Deuda / cuotas",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("restores persisted debt criterion and sorting direction from localStorage", async () => {
     const user = userEvent.setup();
 

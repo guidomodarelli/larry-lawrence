@@ -387,27 +387,23 @@ function LoanSortColumnHeader({
     return <span className={styles.headLabel}>Deuda / cuotas</span>;
   }
 
+  const sorted = column.getIsSorted();
+  const SortIcon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
+
   return (
     <div className={styles.loanSortHeader}>
-      <Popover onOpenChange={handlePopoverOpenChange} open={isPopoverOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            aria-label="Ordenar Deuda / cuotas"
-            className={styles.headButton}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            Deuda / cuotas
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp aria-hidden="true" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown aria-hidden="true" />
-            ) : (
-              <ArrowUpDown aria-hidden="true" />
-            )}
-          </Button>
-        </PopoverTrigger>
+      <span className={styles.sortableHeader}>
+        <span className={styles.headLabel}>Deuda / cuotas</span>
+        <Popover onOpenChange={handlePopoverOpenChange} open={isPopoverOpen}>
+          <PopoverTrigger asChild>
+            <button
+              aria-label="Ordenar Deuda / cuotas"
+              className={styles.sortIconButton}
+              type="button"
+            >
+              <SortIcon aria-hidden="true" />
+            </button>
+          </PopoverTrigger>
         <PopoverContent align="end" className={styles.loanSortPopover}>
           <p className={styles.loanSortPopoverTitle}>Criterio</p>
 
@@ -494,6 +490,7 @@ function LoanSortColumnHeader({
           </div>
         </PopoverContent>
       </Popover>
+      </span>
     </div>
   );
 }
