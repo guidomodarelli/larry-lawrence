@@ -49,7 +49,7 @@ const SHARE_ERROR_MESSAGES: Record<string, string> = {
   "empty-payload": "No pudimos recuperar el contenido del comprobante compartido.",
   "invalid-payload": "No pudimos procesar el comprobante compartido.",
   "invalid-size": "El comprobante debe pesar entre 1 byte y 5 MB.",
-  "missing-file": "No recibimos un archivo al compartir con XFly.",
+  "missing-file": "No recibimos un archivo al compartir con Larry.",
   "unsupported-type": "Solo se admiten comprobantes PDF, JPG, PNG, WEBP, HEIC o HEIF.",
 };
 
@@ -601,7 +601,7 @@ export default function ReceiptShareTargetPage() {
               </p>
             ) : (
               <p className={styles.feedbackNeutral}>
-                No hay un comprobante pendiente. Comparti un archivo hacia XFly
+                No hay un comprobante pendiente. Comparti un archivo hacia Larry
                 desde otra app, o seleccionalo manualmente.
               </p>
             )}

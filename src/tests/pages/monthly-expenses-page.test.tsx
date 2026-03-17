@@ -55,9 +55,9 @@ const mockedSignIn = jest.mocked(signIn);
 const mockedSignOut = jest.mocked(signOut);
 const mockedToast = toast as unknown as MockedToast;
 const originalFetch = global.fetch;
-const SIDEBAR_STORAGE_KEY = "xfly.sidebar.open";
+const SIDEBAR_STORAGE_KEY = "larry.sidebar.open";
 const TABLE_PREFERENCES_STORAGE_KEY =
-  "xfly.monthly-expenses.table-preferences";
+  "larry.monthly-expenses.table-preferences";
 
 function renderWithProviders(ui: ReactElement) {
   return render(<TooltipProvider>{ui}</TooltipProvider>);
