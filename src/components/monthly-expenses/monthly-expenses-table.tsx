@@ -6,6 +6,8 @@ import type {
 } from "@tanstack/react-table";
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
   ArrowUpDown,
   Check,
   CircleX,
@@ -397,7 +399,13 @@ function LoanSortColumnHeader({
             variant="ghost"
           >
             Deuda / cuotas
-            <ArrowUpDown aria-hidden="true" />
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp aria-hidden="true" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown aria-hidden="true" />
+            ) : (
+              <ArrowUpDown aria-hidden="true" />
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className={styles.loanSortPopover}>
@@ -626,6 +634,9 @@ function getSortableHeader(label: string) {
       return <span className={styles.headLabel}>{label}</span>;
     }
 
+    const sorted = column.getIsSorted();
+    const SortIcon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
+
     return (
       <Button
         className={styles.headButton}
@@ -635,7 +646,7 @@ function getSortableHeader(label: string) {
         variant="ghost"
       >
         {label}
-        <ArrowUpDown aria-hidden="true" />
+        <SortIcon aria-hidden="true" />
       </Button>
     );
   };
