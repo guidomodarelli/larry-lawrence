@@ -1773,7 +1773,7 @@ describe("MonthlyExpensesPage", () => {
     });
   });
 
-  it("deletes an existing payment link from the Link column trash button and shows plus again", async () => {
+  it("deletes an existing payment link from the Link column trash button only after confirmation and shows plus again", async () => {
     const user = userEvent.setup();
     const fetchMock = createMonthlyExpensesFetchMock();
 
@@ -1816,6 +1816,22 @@ describe("MonthlyExpensesPage", () => {
       }),
     );
 
+    expect(
+      screen.getByText("¿Querés eliminar este link de pago?"),
+    ).toBeInTheDocument();
+
+    expect(
+      fetchMock.mock.calls.find(
+        ([url]) => url === "/api/storage/monthly-expenses",
+      ),
+    ).toBeUndefined();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Confirmar eliminación de link de pago para Electricidad",
+      }),
+    );
+
     await waitFor(() => {
       expect(getMonthlyExpensesSavePayload(fetchMock)).toEqual({
         items: [
@@ -1837,6 +1853,64 @@ describe("MonthlyExpensesPage", () => {
         name: "Agregar link de pago para Electricidad",
       }),
     ).toBeInTheDocument();
+  });
+
+  it("keeps an existing payment link when the user cancels trash confirmation", async () => {
+    const user = userEvent.setup();
+    const fetchMock = createMonthlyExpensesFetchMock();
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+    global.fetch = fetchMock as typeof fetch;
+
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [
+            {
+              currency: "ARS",
+              description: "Electricidad",
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              paymentLink: "https://pagos.empresa-energia.com",
+              subtotal: 45,
+              total: 45,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Eliminar link de pago para Electricidad",
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(
+      fetchMock.mock.calls.find(
+        ([url]) => url === "/api/storage/monthly-expenses",
+      ),
+    ).toBeUndefined();
+
+    expect(
+      screen.getByRole("link", {
+        name: "Abrir",
+      }),
+    ).toHaveAttribute("href", "https://pagos.empresa-energia.com");
   });
 
   it("shows validation for invalid payment links in the table modal and does not persist", async () => {
@@ -5029,6 +5103,178 @@ describe("MonthlyExpensesPage", () => {
       "href",
       "https://drive.google.com/drive/folders/receipt-folder-id",
     );
+  });
+
+  it("removes monthly folder reference only after confirmation", async () => {
+    const user = userEvent.setup();
+    const fetchMock = createMonthlyExpensesFetchMock();
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+    global.fetch = fetchMock as typeof fetch;
+
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [
+            {
+              currency: "ARS",
+              description: "Internet",
+              folders: {
+                allReceiptsFolderId: "",
+                allReceiptsFolderViewUrl: "",
+                monthlyFolderId: "receipt-month-folder-id",
+                monthlyFolderStatus: "missing",
+                monthlyFolderViewUrl:
+                  "https://drive.google.com/drive/folders/receipt-month-folder-id",
+              },
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              paymentLink: null,
+              receipts: [],
+              subtotal: 100,
+              total: 100,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Quitar referencia de carpeta del mes actual",
+      }),
+    );
+
+    expect(
+      screen.getByText("¿Querés quitar la referencia de carpeta?"),
+    ).toBeInTheDocument();
+
+    expect(
+      fetchMock.mock.calls.find(
+        ([url]) => url === "/api/storage/monthly-expenses",
+      ),
+    ).toBeUndefined();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(
+      fetchMock.mock.calls.find(
+        ([url]) => url === "/api/storage/monthly-expenses",
+      ),
+    ).toBeUndefined();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Quitar referencia de carpeta del mes actual",
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Confirmar quitar referencia de carpeta del mes actual",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getMonthlyExpensesSavePayload(fetchMock).month).toBe("2026-03");
+    });
+  });
+
+  it("removes all-receipts folder reference only after confirmation", async () => {
+    const user = userEvent.setup();
+    const fetchMock = createMonthlyExpensesFetchMock();
+
+    mockedUseSession.mockReturnValue({
+      data: {
+        expires: "2099-01-01T00:00:00.000Z",
+        user: {
+          email: "gus@example.com",
+          name: "Gus",
+        },
+      },
+      status: "authenticated",
+      update: jest.fn(),
+    } as ReturnType<typeof useSession>);
+    global.fetch = fetchMock as typeof fetch;
+
+    renderWithProviders(
+      <MonthlyExpensesPage
+        {...basePageProps}
+        initialDocument={{
+          items: [
+            {
+              currency: "ARS",
+              description: "Internet",
+              folders: {
+                allReceiptsFolderId: "receipt-folder-id",
+                allReceiptsFolderStatus: "missing",
+                allReceiptsFolderViewUrl:
+                  "https://drive.google.com/drive/folders/receipt-folder-id",
+                monthlyFolderId: "",
+                monthlyFolderViewUrl: "",
+              },
+              id: "expense-1",
+              occurrencesPerMonth: 1,
+              paymentLink: null,
+              receipts: [],
+              subtotal: 100,
+              total: 100,
+            },
+          ],
+          month: "2026-03",
+        }}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Quitar referencia de carpeta de comprobantes",
+      }),
+    );
+
+    expect(
+      screen.getByText("¿Querés quitar la referencia de carpeta?"),
+    ).toBeInTheDocument();
+
+    expect(
+      fetchMock.mock.calls.find(
+        ([url]) => url === "/api/storage/monthly-expenses",
+      ),
+    ).toBeUndefined();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(
+      fetchMock.mock.calls.find(
+        ([url]) => url === "/api/storage/monthly-expenses",
+      ),
+    ).toBeUndefined();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Quitar referencia de carpeta de comprobantes",
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Confirmar quitar referencia de carpeta de comprobantes",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getMonthlyExpensesSavePayload(fetchMock).month).toBe("2026-03");
+    });
   });
 
   it("sorts Link keeping empty values at the end in both directions", async () => {

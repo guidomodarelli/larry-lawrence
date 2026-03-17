@@ -318,6 +318,77 @@ interface ReceiptDeleteConfirmButtonProps {
   receiptFileName: string;
 }
 
+interface TrashConfirmButtonProps {
+  actionDisabled: boolean;
+  confirmAriaLabel: string;
+  confirmButtonLabel?: string;
+  confirmMessage: string;
+  onConfirm: () => void | Promise<void>;
+  tooltipLabel: string;
+  triggerAriaLabel: string;
+  triggerClassName: string;
+}
+
+function TrashConfirmButton({
+  actionDisabled,
+  confirmAriaLabel,
+  confirmButtonLabel = "Eliminar",
+  confirmMessage,
+  onConfirm,
+  tooltipLabel,
+  triggerAriaLabel,
+  triggerClassName,
+}: TrashConfirmButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Popover onOpenChange={setIsOpen} open={isOpen}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              aria-label={triggerAriaLabel}
+              className={triggerClassName}
+              disabled={actionDisabled}
+              size="icon-sm"
+              type="button"
+              variant="ghost"
+            >
+              <Trash2 aria-hidden="true" />
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{tooltipLabel}</TooltipContent>
+      </Tooltip>
+      <PopoverContent align="end" className={styles.receiptDeleteConfirmPopover}>
+        <p className={styles.receiptDeleteConfirmMessage}>{confirmMessage}</p>
+        <div className={styles.receiptDeleteConfirmActions}>
+          <Button
+            onClick={() => setIsOpen(false)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Cancelar
+          </Button>
+          <Button
+            aria-label={confirmAriaLabel}
+            onClick={() => {
+              setIsOpen(false);
+              void onConfirm();
+            }}
+            size="sm"
+            type="button"
+            variant="destructive"
+          >
+            {confirmButtonLabel}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ReceiptDeleteConfirmButton({
   actionDisabled,
   onConfirm,
@@ -1766,24 +1837,15 @@ export function MonthlyExpensesTable({
                 <TooltipContent>Editar link de pago</TooltipContent>
               </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    aria-label={`Eliminar link de pago para ${expenseDescription}`}
-                    className={styles.paymentLinkActionButton}
-                    disabled={actionDisabled}
-                    onClick={() => {
-                      void onDeletePaymentLink(row.original.id);
-                    }}
-                    size="icon-sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Eliminar link de pago</TooltipContent>
-              </Tooltip>
+              <TrashConfirmButton
+                actionDisabled={actionDisabled}
+                confirmAriaLabel={`Confirmar eliminación de link de pago para ${expenseDescription}`}
+                confirmMessage="¿Querés eliminar este link de pago?"
+                onConfirm={() => onDeletePaymentLink(row.original.id)}
+                tooltipLabel="Eliminar link de pago"
+                triggerAriaLabel={`Eliminar link de pago para ${expenseDescription}`}
+                triggerClassName={styles.paymentLinkActionButton}
+              />
             </div>
           );
         },
@@ -2170,23 +2232,16 @@ export function MonthlyExpensesTable({
                 <DriveStatusBadge status={row.original.monthlyFolderStatus} />
                 <span>-</span>
                 {canDeleteFolderReference ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        aria-label="Quitar referencia de carpeta del mes actual"
-                        className={styles.receiptDeleteButton}
-                        disabled={actionDisabled}
-                        onClick={() =>
-                          onDeleteMonthlyFolderReference(row.original.id)}
-                        size="icon-sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <Trash2 aria-hidden="true" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Quitar referencia de carpeta</TooltipContent>
-                  </Tooltip>
+                  <TrashConfirmButton
+                    actionDisabled={actionDisabled}
+                    confirmAriaLabel="Confirmar quitar referencia de carpeta del mes actual"
+                    confirmButtonLabel="Quitar"
+                    confirmMessage="¿Querés quitar la referencia de carpeta?"
+                    onConfirm={() => onDeleteMonthlyFolderReference(row.original.id)}
+                    tooltipLabel="Quitar referencia de carpeta"
+                    triggerAriaLabel="Quitar referencia de carpeta del mes actual"
+                    triggerClassName={styles.receiptDeleteButton}
+                  />
                 ) : null}
               </div>
             );
@@ -2210,23 +2265,16 @@ export function MonthlyExpensesTable({
                 <TooltipContent>Abrir carpeta del mes actual en Drive</TooltipContent>
               </Tooltip>
               {canDeleteFolderReference ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      aria-label="Quitar referencia de carpeta del mes actual"
-                      className={styles.receiptDeleteButton}
-                      disabled={actionDisabled}
-                      onClick={() =>
-                        onDeleteMonthlyFolderReference(row.original.id)}
-                      size="icon-sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Quitar referencia de carpeta</TooltipContent>
-                </Tooltip>
+                <TrashConfirmButton
+                  actionDisabled={actionDisabled}
+                  confirmAriaLabel="Confirmar quitar referencia de carpeta del mes actual"
+                  confirmButtonLabel="Quitar"
+                  confirmMessage="¿Querés quitar la referencia de carpeta?"
+                  onConfirm={() => onDeleteMonthlyFolderReference(row.original.id)}
+                  tooltipLabel="Quitar referencia de carpeta"
+                  triggerAriaLabel="Quitar referencia de carpeta del mes actual"
+                  triggerClassName={styles.receiptDeleteButton}
+                />
               ) : null}
             </div>
           );
@@ -2265,23 +2313,17 @@ export function MonthlyExpensesTable({
                 <DriveStatusBadge status={row.original.allReceiptsFolderStatus} />
                 <span>-</span>
                 {canDeleteFolderReference ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        aria-label="Quitar referencia de carpeta de comprobantes"
-                        className={styles.receiptDeleteButton}
-                        disabled={actionDisabled}
-                        onClick={() =>
-                          onDeleteAllReceiptsFolderReference(row.original.id)}
-                        size="icon-sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <Trash2 aria-hidden="true" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Quitar referencia de carpeta</TooltipContent>
-                  </Tooltip>
+                  <TrashConfirmButton
+                    actionDisabled={actionDisabled}
+                    confirmAriaLabel="Confirmar quitar referencia de carpeta de comprobantes"
+                    confirmButtonLabel="Quitar"
+                    confirmMessage="¿Querés quitar la referencia de carpeta?"
+                    onConfirm={() =>
+                      onDeleteAllReceiptsFolderReference(row.original.id)}
+                    tooltipLabel="Quitar referencia de carpeta"
+                    triggerAriaLabel="Quitar referencia de carpeta de comprobantes"
+                    triggerClassName={styles.receiptDeleteButton}
+                  />
                 ) : null}
               </div>
             );
@@ -2305,23 +2347,17 @@ export function MonthlyExpensesTable({
                 <TooltipContent>Abrir carpeta con todos los comprobantes en Drive</TooltipContent>
               </Tooltip>
               {canDeleteFolderReference ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      aria-label="Quitar referencia de carpeta de comprobantes"
-                      className={styles.receiptDeleteButton}
-                      disabled={actionDisabled}
-                      onClick={() =>
-                        onDeleteAllReceiptsFolderReference(row.original.id)}
-                      size="icon-sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Quitar referencia de carpeta</TooltipContent>
-                </Tooltip>
+                <TrashConfirmButton
+                  actionDisabled={actionDisabled}
+                  confirmAriaLabel="Confirmar quitar referencia de carpeta de comprobantes"
+                  confirmButtonLabel="Quitar"
+                  confirmMessage="¿Querés quitar la referencia de carpeta?"
+                  onConfirm={() =>
+                    onDeleteAllReceiptsFolderReference(row.original.id)}
+                  tooltipLabel="Quitar referencia de carpeta"
+                  triggerAriaLabel="Quitar referencia de carpeta de comprobantes"
+                  triggerClassName={styles.receiptDeleteButton}
+                />
               ) : null}
             </div>
           );

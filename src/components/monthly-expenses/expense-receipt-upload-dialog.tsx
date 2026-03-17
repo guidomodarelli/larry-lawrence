@@ -24,6 +24,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
@@ -103,6 +108,7 @@ export function ExpenseReceiptUploadDialog({
 }: ExpenseReceiptUploadDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [isFileRemoveConfirmOpen, setIsFileRemoveConfirmOpen] = useState(false);
   const [coverageMode, setCoverageMode] = useState<"full" | "partial">("full");
   const [partialCoveredPayments, setPartialCoveredPayments] = useState("1");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -154,6 +160,7 @@ export function ExpenseReceiptUploadDialog({
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
+      setIsFileRemoveConfirmOpen(false);
       setSelectedFile(null);
       setIsDraggingFile(false);
       setCoverageMode("full");
@@ -164,6 +171,7 @@ export function ExpenseReceiptUploadDialog({
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null;
+    setIsFileRemoveConfirmOpen(false);
     setSelectedFile(nextFile);
   };
 
@@ -172,6 +180,7 @@ export function ExpenseReceiptUploadDialog({
   };
 
   const handleClearSelectedFile = () => {
+    setIsFileRemoveConfirmOpen(false);
     setSelectedFile(null);
 
     if (fileInputRef.current) {
@@ -192,6 +201,7 @@ export function ExpenseReceiptUploadDialog({
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDraggingFile(false);
+    setIsFileRemoveConfirmOpen(false);
     setSelectedFile(getDroppedFile(event));
   };
 
@@ -302,17 +312,55 @@ export function ExpenseReceiptUploadDialog({
                   </p>
                 </div>
 
-                <Button
-                  aria-label={`Quitar archivo ${selectedFile.name}`}
-                  className={styles.fileRemoveButton}
-                  disabled={isSubmitting}
-                  onClick={handleClearSelectedFile}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
+                <Popover
+                  onOpenChange={setIsFileRemoveConfirmOpen}
+                  open={isFileRemoveConfirmOpen}
                 >
-                  <Trash2 aria-hidden="true" />
-                </Button>
+                  <PopoverTrigger asChild>
+                    <Button
+                      aria-label={`Quitar archivo ${selectedFile.name}`}
+                      className={styles.fileRemoveButton}
+                      disabled={isSubmitting}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    className={styles.fileRemoveConfirmPopover}
+                    side="bottom"
+                  >
+                    <p className={styles.fileRemoveConfirmMessage}>
+                      ¿Querés quitar este archivo seleccionado?
+                    </p>
+                    <div className={styles.fileRemoveConfirmActions}>
+                      <Button
+                        aria-label={`Cancelar quitar archivo ${selectedFile.name}`}
+                        onClick={() => setIsFileRemoveConfirmOpen(false)}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        aria-label={`Confirmar quitar archivo ${selectedFile.name}`}
+                        onClick={() => {
+                          setIsFileRemoveConfirmOpen(false);
+                          handleClearSelectedFile();
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="destructive"
+                      >
+                        Quitar
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div aria-hidden="true" className={styles.fileProgressTrack}>

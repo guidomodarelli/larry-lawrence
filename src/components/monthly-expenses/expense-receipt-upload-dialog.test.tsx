@@ -198,4 +198,71 @@ describe("ExpenseReceiptUploadDialog", () => {
 
     expect(screen.getByText("Subiendo... 73%")).toBeInTheDocument();
   });
+
+  it("keeps selected file when remove is canceled", async () => {
+    const user = userEvent.setup();
+
+    renderExpenseReceiptUploadDialog();
+
+    const file = new File(["invoice"], "factura.pdf", {
+      type: "application/pdf",
+    });
+    const fileInput = document.querySelector('input[type="file"]');
+
+    if (!(fileInput instanceof HTMLInputElement)) {
+      throw new Error("File input not found");
+    }
+
+    await user.upload(fileInput, file);
+
+    expect(screen.getByText("factura.pdf")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Quitar archivo factura.pdf",
+      }),
+    );
+
+    expect(
+      screen.getByText("¿Querés quitar este archivo seleccionado?"),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Cancelar quitar archivo factura.pdf",
+      }),
+    );
+
+    expect(screen.getByText("factura.pdf")).toBeInTheDocument();
+  });
+
+  it("clears selected file only after remove confirmation", async () => {
+    const user = userEvent.setup();
+
+    renderExpenseReceiptUploadDialog();
+
+    const file = new File(["invoice"], "factura.pdf", {
+      type: "application/pdf",
+    });
+    const fileInput = document.querySelector('input[type="file"]');
+
+    if (!(fileInput instanceof HTMLInputElement)) {
+      throw new Error("File input not found");
+    }
+
+    await user.upload(fileInput, file);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Quitar archivo factura.pdf",
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Confirmar quitar archivo factura.pdf",
+      }),
+    );
+
+    expect(screen.queryByText("factura.pdf")).not.toBeInTheDocument();
+  });
 });

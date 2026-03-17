@@ -177,6 +177,22 @@
   color: var(--destructive);
 }
 
+.fileRemoveConfirmPopover {
+  width: min(18rem, calc(100vw - 2rem));
+}
+
+.fileRemoveConfirmMessage {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+.fileRemoveConfirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .fileProgressTrack {
   position: relative;
   width: 100%;
